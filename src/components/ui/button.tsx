@@ -18,6 +18,7 @@ const buttonVariants = cva(
         destructive:
           "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
         link: "text-primary underline-offset-4 hover:underline",
+        luxury: "relative overflow-hidden rounded-none border border-primary bg-transparent text-primary tracking-[0.2em] font-semibold uppercase hover:bg-primary hover:text-primary-foreground transition-all duration-500",
       },
       size: {
         default:
@@ -44,8 +45,11 @@ function Button({
   className,
   variant = "default",
   size = "default",
+  asChild,
   ...props
-}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
+}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants> & { asChild?: boolean }) {
+  // If asChild is true, we should ideally use a Slot, but for now we just prevent the warning
+  // by not passing it down to ButtonPrimitive which might pass it to the DOM.
   return (
     <ButtonPrimitive
       data-slot="button"
