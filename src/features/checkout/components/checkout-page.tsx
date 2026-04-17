@@ -31,7 +31,7 @@ export default function CheckoutPage() {
   
   const selectedZone = shippingZones.find(z => z.id === selectedZoneId);
   const shippingCost = selectedZone 
-    ? (subtotal >= (selectedZone.free_shipping_threshold || Infinity) ? 0 : Number(selectedZone.base_cost || selectedZone.base_rate || 0))
+    ? (subtotal >= (selectedZone.free_shipping_threshold || Infinity) ? 0 : Number(selectedZone.base_rate || 0))
     : 0;
 
   const total = subtotal + (isGiftWrapped ? 150000 : 0) + shippingCost;
@@ -129,7 +129,7 @@ export default function CheckoutPage() {
                        >
                           {shippingZones.map(zone => (
                             <option key={zone.id} value={zone.id}>
-                              {zone.name} - {Number(zone.base_cost || zone.base_rate || 0).toLocaleString("vi-VN")} VND
+                              {zone.name} - {Number(zone.base_rate || 0).toLocaleString("vi-VN")} VND
                             </option>
                           ))}
                        </select>
