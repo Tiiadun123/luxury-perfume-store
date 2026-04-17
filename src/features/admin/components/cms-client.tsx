@@ -5,6 +5,7 @@ import { Eye, Save, Trash2, Loader2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { upsertBanner, deleteBanner } from "../actions";
+import Image from "next/image";
 
 interface Banner {
   id: string;
@@ -68,7 +69,15 @@ export function CMSClient({ initialBanners }: { initialBanners: Banner[] }) {
              <div className="grid gap-4">
                {banners.map(b => (
                  <div key={b.id} className="flex items-center gap-4 bg-zinc-900/50 p-4 border border-white/5 group hover:border-primary/30 transition-all">
-                    <img src={b.image_url} className="w-16 h-16 object-cover grayscale group-hover:grayscale-0 transition-all" />
+                    <div className="relative w-16 h-16 overflow-hidden">
+                       <Image 
+                         src={b.image_url} 
+                         alt={b.title}
+                         fill
+                         sizes="64px"
+                         className="object-cover grayscale group-hover:grayscale-0 transition-all" 
+                       />
+                    </div>
                     <div className="flex-1">
                        <p className="text-sm font-playfair font-bold uppercase">{b.title}</p>
                        <p className="text-[10px] text-muted-foreground uppercase">{b.subtitle.substring(0, 40)}...</p>
@@ -150,7 +159,13 @@ export function CMSClient({ initialBanners }: { initialBanners: Banner[] }) {
               
               <div className="relative aspect-[4/5] bg-zinc-900 overflow-hidden border border-white/10 group">
                 {selectedBanner.image_url ? (
-                  <img src={selectedBanner.image_url} className="absolute inset-0 w-full h-full object-cover grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-1000" />
+                  <Image 
+                    src={selectedBanner.image_url} 
+                    alt={selectedBanner.title || "Preview"}
+                    fill
+                    sizes="(max-width: 1024px) 100vw, 40vw"
+                    className="absolute inset-0 w-full h-full object-cover grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-1000" 
+                  />
                 ) : (
                   <div className="absolute inset-0 flex items-center justify-center text-muted-foreground uppercase text-[10px] tracking-widest">No Creative Selected</div>
                 )}

@@ -9,8 +9,7 @@ import {
   CheckCircle2, 
   Clock, 
   Package, 
-  Search,
-  ChevronDown
+  Search
 } from "lucide-react";
 import { 
   DropdownMenu,
@@ -21,20 +20,23 @@ import {
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
-export function AdminOrdersClient({ initialOrders }: { initialOrders: any[] }) {
+import { Order } from "@/types/admin";
+
+export function AdminOrdersClient({ initialOrders }: { initialOrders: Order[] }) {
   const [orders, setOrders] = useState(initialOrders);
   const [search, setSearch] = useState("");
 
   const filteredOrders = orders.filter(o => 
-    o.order_number.toLowerCase().includes(search.toLowerCase()) ||
-    o.customer_name.toLowerCase().includes(search.toLowerCase()) ||
-    o.customer_email.toLowerCase().includes(search.toLowerCase())
+    o.order_number?.toLowerCase().includes(search.toLowerCase()) ||
+    o.customer_name?.toLowerCase().includes(search.toLowerCase()) ||
+    o.customer_email?.toLowerCase().includes(search.toLowerCase()) ||
+    o.recipient_name?.toLowerCase().includes(search.toLowerCase())
   );
 
   const handleStatusUpdate = async (orderId: string, newStatus: string) => {
     const result = await updateOrderStatus(orderId, newStatus);
     if (result.success) {
-      setOrders(orders.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+      setOrders(orders.map(o => o.id === orderId ? { ...o, status: newStatus as Order['status'] } : o));
     }
   };
 
@@ -43,7 +45,7 @@ export function AdminOrdersClient({ initialOrders }: { initialOrders: any[] }) {
       case 'pending': return <Clock className="w-3 h-3" />;
       case 'processing': return <Package className="w-3 h-3" />;
       case 'shipped': return <Truck className="w-3 h-3" />;
-      case 'completed': return <CheckCircle2 className="w-3 h-3" />;
+      case 'delivered': return <CheckCircle2 className="w-3 h-3" />;
       default: return null;
     }
   };
@@ -97,7 +99,7 @@ export function AdminOrdersClient({ initialOrders }: { initialOrders: any[] }) {
                     order.status === 'pending' && "text-amber-500",
                     order.status === 'processing' && "text-blue-500",
                     order.status === 'shipped' && "text-primary",
-                    order.status === 'completed' && "text-green-500",
+                    order.status === 'delivered' && "text-green-500",
                   )}>
                     {getStatusIcon(order.status)}
                     {order.status}
@@ -124,10 +126,10 @@ export function AdminOrdersClient({ initialOrders }: { initialOrders: any[] }) {
                         MARK AS SHIPPED
                       </DropdownMenuItem>
                       <DropdownMenuItem 
-                        onClick={() => handleStatusUpdate(order.id, 'completed')}
+                        onClick={() => handleStatusUpdate(order.id, 'delivered')}
                         className="text-[9px] tracking-[0.2em] uppercase font-bold cursor-pointer hover:bg-primary/10"
                       >
-                        MARK AS COMPLETED
+                        MARK AS DELIVERED
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>

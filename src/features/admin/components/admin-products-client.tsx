@@ -9,22 +9,7 @@ import { deleteProduct } from "../actions";
 import { ProductModal } from "./product-modal";
 import { AnimatePresence } from "framer-motion";
 
-interface Product {
-  id: string;
-  name: string;
-  brand_id?: string;
-  concentration: string;
-  brand: { id: string; name: string };
-  variants: any[];
-  images: any[];
-  slug: string;
-  description: string;
-  short_description?: string;
-  gender: "Men" | "Women" | "Unisex";
-  scent_family: string;
-  is_active: boolean;
-  is_featured: boolean;
-}
+import { Product } from "@/types/admin";
 
 export function AdminProductsClient({ initialProducts }: { initialProducts: Product[] }) {
   const [search, setSearch] = useState("");

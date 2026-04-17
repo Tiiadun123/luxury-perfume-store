@@ -1,8 +1,7 @@
-import { getUserProfile, getUserOrders } from "../actions";
+import { getUserOrders } from "../actions";
 import { Button } from "@/components/ui/button";
 import { Package, User, MapPin, Heart, LogOut } from "lucide-react";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { signout } from "@/features/auth/actions";
 
 interface ProfileOrderItem {
@@ -22,7 +21,13 @@ interface ProfileOrder {
    items: ProfileOrderItem[];
 }
 
-export default async function ProfileDashboard({ initialProfile }: { initialProfile: any }) {
+interface InitialProfile {
+  full_name: string | null;
+  email: string | null;
+  address?: string | null;
+}
+
+export default async function ProfileDashboard({ initialProfile }: { initialProfile: InitialProfile }) {
   const profile = initialProfile;
   const orders = (await getUserOrders()) as ProfileOrder[];
 

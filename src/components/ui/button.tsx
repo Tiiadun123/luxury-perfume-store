@@ -45,9 +45,8 @@ function Button({
   className,
   variant = "default",
   size = "default",
-  asChild,
   ...props
-}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants> & { asChild?: boolean }) {
+}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
   // If asChild is true, we should ideally use a Slot, but for now we just prevent the warning
   // by not passing it down to ButtonPrimitive which might pass it to the DOM.
   return (

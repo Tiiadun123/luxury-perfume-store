@@ -15,11 +15,14 @@ function SuccessContent() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    const id = requestAnimationFrame(() => setMounted(true));
+    
     // Clear cart on successful payment session
     if (sessionId) {
       clearCart();
     }
+
+    return () => cancelAnimationFrame(id);
   }, [sessionId, clearCart]);
 
   if (!mounted) return null;
@@ -55,7 +58,7 @@ function SuccessContent() {
 
         <div className="max-w-xl mx-auto border-t border-b border-border/20 py-12 space-y-8">
            <p className="font-playfair text-xl italic leading-relaxed text-muted-foreground">
-             "Your selection will now begin its meticulous preparation by our house artisans. We thank you for choosing the essence of Maison Scêntia."
+             &quot;Your selection will now begin its meticulous preparation by our house artisans. We thank you for choosing the essence of Maison Scêntia.&quot;
            </p>
            <div className="flex flex-col items-center gap-2">
               <p className="text-[8px] tracking-[0.3em] uppercase text-muted-foreground font-bold">SESSION IDENTIFIER</p>

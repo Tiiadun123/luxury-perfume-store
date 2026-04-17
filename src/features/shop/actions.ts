@@ -7,6 +7,8 @@ interface ProductBrandRow {
 }
 
 interface ProductVariantRow {
+  id: string;
+  size: number;
   price: number | null;
 }
 
@@ -29,6 +31,9 @@ interface ProductListRow {
   id: string;
   name: string;
   slug: string;
+  concentration: string | null;
+  longevity: string | null;
+  sillage: string | null;
   brand: ProductBrandRow | ProductBrandRow[] | null;
   variants: ProductVariantRow[] | null;
   images: ProductImageRow[] | null;
@@ -37,12 +42,17 @@ interface ProductListRow {
 
 export interface ProductListItem {
   id: string;
+  defaultVariantId: string;
+  size: number;
   name: string;
   slug: string;
   brand: string;
   price: number;
   image: string;
   notes: string[];
+  concentration?: string;
+  longevity?: string;
+  sillage?: string;
 }
 
 export interface ProductVariant {
@@ -65,6 +75,7 @@ export interface ProductNote {
 
 export interface ProductDetail {
   id: string;
+  brand_id: string;
   name: string;
   slug: string;
   description: string;
@@ -96,23 +107,34 @@ function toProductListItem(product: ProductListRow): ProductListItem {
 
   return {
     id: product.id,
+    defaultVariantId: product.variants?.[0]?.id || "",
+    size: product.variants?.[0]?.size || 0,
     name: product.name,
     slug: product.slug,
     brand: brandName || "SCENTIA",
     price: product.variants?.[0]?.price || 0,
     image: product.images?.[0]?.url || "",
     notes,
+    concentration: product.concentration || "Extrait de Parfum",
+    longevity: product.longevity || "8-10 Hours",
+    sillage: product.sillage || "Moderate",
   };
 }
 
-export async function getProducts(filters?: { 
-  category?: string; 
-  gender?: string; 
+export async function getProducts(filters?: {
+  category?: string;
+  gender?: string;
   brand?: string;
   scent_family?: string;
-  sortBy?: string 
+  concentration?: string;
+  is_featured?: boolean;
+  sortBy?: string;
+  limit?: number;
+  query?: string;
 }): Promise<ProductListItem[]> {
   const supabase = await createClient();
+
+  const brandSelect = filters?.brand ? "brand:brands!inner(name, slug)" : "brand:brands(name, slug)";
 
   let query = supabase
     .from("products")
@@ -120,13 +142,20 @@ export async function getProducts(filters?: {
       id,
       name,
       slug,
-      brand:brands(name),
-      variants:product_variants(price),
+      concentration,
+      longevity,
+      sillage,
+      ${brandSelect},
+      variants:product_variants(id, size, price),
       images:product_images(url),
       product_notes:product_notes(note:fragrance_notes(name))
     `)
     .eq("is_active", true)
     .eq("product_images.is_main", true);
+
+  if (filters?.limit) {
+    query = query.limit(filters.limit);
+  }
 
   if (filters?.gender) {
     query = query.eq("gender", filters.gender);
@@ -136,20 +165,47 @@ export async function getProducts(filters?: {
     query = query.eq("scent_family", filters.scent_family);
   }
 
+  if (filters?.brand) {
+    query = query.eq("brands.slug", filters.brand);
+  }
+
+   if (filters?.concentration) {
+    query = query.eq("concentration", filters.concentration);
+  }
+
+  if (filters?.is_featured) {
+    query = query.eq("is_featured", true);
+  }
+
+  if (filters?.query) {
+    const searchTerm = `%${filters.query}%`;
+    query = query.or(`name.ilike.${searchTerm},slug.ilike.${searchTerm}`);
+  }
+
   // Sorting logic
-  if (filters?.sortBy === "price_asc") {
-    // This is bit trickier with nested variants, usually better to handle sorting via RPC or specific view
-    // For now, simple created_at sort
+  if (filters?.sortBy === "price_low") {
+    query = query.order('price', { foreignTable: 'product_variants', ascending: true });
+  } else if (filters?.sortBy === "price_high") {
+    query = query.order('price', { foreignTable: 'product_variants', ascending: false });
+  } else if (filters?.sortBy === "newest") {
+    query = query.order('created_at', { ascending: false });
+  } else if (filters?.sortBy === "name") {
+    query = query.order('name', { ascending: true });
+  } else {
+    // Default sorting
+    query = query.order('name', { ascending: true });
   }
   
-  const { data, error } = await query.order("created_at", { ascending: false });
+  const { data, error } = await query;
 
   if (error) {
     console.error("Error fetching products:", error);
     return [];
   }
 
-  return (data as ProductListRow[]).map(toProductListItem);
+  const results = (data as ProductListRow[]).map(toProductListItem);
+
+  return results;
 }
 
 export async function getProductBySlug(slug: string): Promise<ProductDetail | null> {
@@ -203,8 +259,9 @@ export async function getProductsByBrand(brandId: string): Promise<ProductListIt
     .from("products")
     .select(`
       id, name, slug, 
+      concentration, longevity, sillage,
       brand:brands(name),
-      variants:product_variants(price),
+      variants:product_variants(id, size, price),
       images:product_images(url),
       product_notes:product_notes(note:fragrance_notes(name))
     `)
@@ -223,8 +280,9 @@ export async function getRelatedProducts(productId: string, brandId: string, lim
     .from("products")
     .select(`
       id, name, slug, 
+      concentration, longevity, sillage,
       brand:brands(name),
-      variants:product_variants(price),
+      variants:product_variants(id, size, price),
       images:product_images(url),
       product_notes:product_notes(note:fragrance_notes(name))
     `)
@@ -237,4 +295,43 @@ export async function getRelatedProducts(productId: string, brandId: string, lim
   if (error) return [];
   
   return (data as ProductListRow[]).map(toProductListItem);
+}
+
+export async function getBrands() {
+  const supabase = await createClient();
+  
+  // Fetch brands that have at least one active product
+  const { data, error } = await supabase
+    .from("brands")
+    .select(`
+      name, 
+      slug,
+      products!inner(id)
+    `)
+    .eq("is_active", true)
+    .eq("products.is_active", true)
+    .order("name", { ascending: true });
+
+  if (error) {
+    console.error("Error fetching brands:", error);
+    return [];
+  }
+
+  const uniqueBrands = Array.from(new Map(data.map(item => [item.slug, { name: item.name, slug: item.slug }])).values());
+  
+  return uniqueBrands;
+}
+
+export async function getCategories() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("categories")
+    .select("name, slug")
+    .order("name", { ascending: true });
+
+  if (error) {
+    console.error("Error fetching categories:", error);
+    return [];
+  }
+  return data;
 }

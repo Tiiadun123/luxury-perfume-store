@@ -1,16 +1,15 @@
 import { NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { createClient } from "@supabase/supabase-js";
-import { Resend } from "resend";
+import { resend } from "@/lib/resend";
 import { getOrderReceiptHtml } from "@/lib/emails/order-receipt-email";
-
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+import Stripe from "stripe";
 
 export async function POST(req: Request) {
   const body = await req.text();
   const signature = req.headers.get("stripe-signature") as string;
 
-  let event;
+  let event: Stripe.Event;
 
   try {
     event = stripe.webhooks.constructEvent(
@@ -18,9 +17,10 @@ export async function POST(req: Request) {
       signature,
       process.env.STRIPE_WEBHOOK_SECRET!
     );
-  } catch (error: any) {
-    console.error("Webhook signature verification failed.", error.message);
-    return new NextResponse(`Webhook Error: ${error.message}`, { status: 400 });
+  } catch (error) {
+    const err = error as Error;
+    console.error("Webhook signature verification failed.", err.message);
+    return new NextResponse(`Webhook Error: ${err.message}`, { status: 400 });
   }
 
   // Initialize Supabase. For webhooks background processing, 
@@ -31,13 +31,13 @@ export async function POST(req: Request) {
 
   try {
     switch (event.type) {
-      case "checkout.session.completed":
-        const session = event.data.object as any;
+      case "checkout.session.completed": {
+        const session = event.data.object as Stripe.Checkout.Session;
         const orderId = session.metadata?.orderId;
         const paymentIntentId = session.payment_intent as string;
         
         if (orderId) {
-          console.log(`Payment successful for order ${orderId}`);
+          console.info("Payment successful for order.");
           
           // 1. Update order status to processing and payment_status to paid
           const { error: orderError } = await supabase
@@ -60,7 +60,9 @@ export async function POST(req: Request) {
                order_id: orderId,
                provider: "stripe",
                provider_id: paymentIntentId || session.id,
-               amount: session.amount_total, // Stripe keeps VND amounts unmodified normally, but typically it depends on minor units.
+               amount: (session.currency?.toLowerCase() === "vnd" 
+                 ? session.amount_total 
+                 : (session.amount_total || 0) / 100) || 0, // Handle non-zero-decimal currencies
                currency: session.currency?.toUpperCase() || "VND",
                status: "completed",
                raw_response: session,
@@ -71,7 +73,39 @@ export async function POST(req: Request) {
              // Non-blocking error: we updated the order successfully.
           }
 
-          // 3. Fetch Order Details to Send Email
+          // 3. Stock Management: Decrement inventory for each item
+          const { data: itemsToUpdate } = await supabase
+            .from("order_items")
+            .select("variant_id, quantity")
+            .eq("order_id", orderId);
+
+          if (itemsToUpdate && itemsToUpdate.length > 0) {
+            for (const item of itemsToUpdate) {
+              const { error: stockError } = await supabase.rpc('decrement_stock_by_variant', {
+                p_variant_id: item.variant_id,
+                p_quantity: item.quantity
+              });
+
+              if (stockError) {
+                console.error(`Inventory Error for variant ${item.variant_id}:`, stockError);
+                // We fallback to a manual update if RPC is missing
+                const { data: currentVariant } = await supabase
+                  .from("product_variants")
+                  .select("stock_quantity")
+                  .eq("id", item.variant_id)
+                  .single();
+
+                if (currentVariant) {
+                  await supabase
+                    .from("product_variants")
+                    .update({ stock_quantity: Math.max(0, currentVariant.stock_quantity - item.quantity) })
+                    .eq("id", item.variant_id);
+                }
+              }
+            }
+          }
+
+          // 4. Fetch Order Details to Send Email
           const { data: orderDetails } = await supabase
             .from("orders")
             .select(`
@@ -79,6 +113,7 @@ export async function POST(req: Request) {
               customer_name,
               customer_email,
               total_amount,
+              recipient_name,
               items:order_items (
                 product_name,
                 variant_size,
@@ -91,49 +126,60 @@ export async function POST(req: Request) {
 
           // 4. Send Confirmation Email via Resend
           if (orderDetails) {
+             const customerName = orderDetails.customer_name || orderDetails.recipient_name || "MEMBER";
+             const customerEmail = orderDetails.customer_email || session.customer_details?.email;
+
+             if (!customerEmail) {
+               console.error("No email address found to send receipt.");
+               return new NextResponse("No email found", { status: 200 });
+             }
+
              const htmlContent = getOrderReceiptHtml({
-               customerName: orderDetails.customer_name,
+               customerName: customerName,
                orderNumber: orderDetails.order_number,
                totalAmount: orderDetails.total_amount,
                items: orderDetails.items,
              });
 
-             if (resend) {
-               try {
-                 // NOTE: When using the free Resend plan with "onboarding@resend.dev":
-                 // - You can ONLY send to the email address registered on your Resend account
-                 // - To send to any email, you must verify your own domain at https://resend.com/domains
-                 // - Then change the "from" field to "Maison Scêntia <noreply@yourdomain.com>"
-                 const emailResult = await resend.emails.send({
-                   from: "Maison Scêntia <onboarding@resend.dev>",
-                   to: [orderDetails.customer_email],
-                   subject: `Maison Scêntia - Xác Nhận Đơn Hàng #${orderDetails.order_number}`,
-                   html: htmlContent
-                 });
-                 console.log("✅ Confirmation email sent to", orderDetails.customer_email, "| Resend ID:", emailResult);
-               } catch (emailError: any) {
-                 console.error("❌ Failed to send confirmation email:", emailError?.message || emailError);
-                 console.error("📧 Recipient was:", orderDetails.customer_email);
-                 console.error("💡 TIP: Free Resend accounts can only send to your registered email.");
-                 console.error("   To send to any email, verify your domain at https://resend.com/domains");
-               }
-             } else {
-               console.log("--- MOCK EMAIL HTML ---\n");
-               console.log(`To: ${orderDetails.customer_email}\nSubject: Maison Scêntia - Xác Nhận Đơn Hàng #${orderDetails.order_number}`);
-               console.log("--- (Set RESEND_API_KEY environment variable to send real emails)");
-             }
+              if (resend) {
+                try {
+                  const adminEmail = "hungtran2005lucky@gmail.com"; 
+                  
+                  await resend.emails.send({
+                    from: "Maison Scêntia <hungtran2003lucky@gmail.com>",
+                    to: [customerEmail], // Use the validated email with fallback
+                    bcc: [adminEmail], 
+                    subject: `Maison Scêntia - Xác Nhận Đơn Hàng #${orderDetails.order_number}`,
+                    html: htmlContent
+                  });
+                  
+                  console.info("Receipt email sent successfully.");
+                } catch (emailError) {
+                  const err = emailError as Error;
+                  console.error("❌ RESEND ERROR:", err.message || err);
+                  console.error("🔍 DEBUG INFO:", {
+                    recipient: orderDetails.customer_email,
+                    apiKeyStatus: process.env.RESEND_API_KEY ? "Present" : "Missing",
+                    fromAddress: "hungtran2003lucky@gmail.com"
+                  });
+                }
+              } else {
+                console.warn("⚠️ RESEND NOT INITIALIZED: Check RESEND_API_KEY in .env.local");
+              }
           }
         }
         break;
+      }
       
       // Handle other required events...
-      case "payment_intent.payment_failed":
-        const failedIntent = event.data.object as any;
+      case "payment_intent.payment_failed": {
+        const failedIntent = event.data.object as Stripe.PaymentIntent;
         console.error("Payment failed for intent:", failedIntent.id);
         break;
+      }
 
       default:
-        console.log(`Unhandled event type ${event.type}`);
+        console.info(`Unhandled event type: ${event.type}`);
     }
 
     return new NextResponse("Webhook processed successfully", { status: 200 });

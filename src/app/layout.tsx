@@ -2,7 +2,12 @@ import type { Metadata } from "next";
 import { Inter, Playfair_Display } from "next/font/google";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { QueryProvider } from "@/components/providers/query-provider";
+import { ComparisonProvider } from "@/features/shop/context/comparison-context";
+import { ComparisonBar } from "@/features/shop/components/comparison-bar";
+import { ComparisonView } from "@/features/shop/components/comparison-view";
 import { CartSidepad } from "@/features/cart/components/cart-sidepad";
+import { Toaster } from "sonner";
+import { LuxuryCursor } from "@/components/ui/luxury-cursor";
 import "./globals.css";
 
 const inter = Inter({
@@ -24,7 +29,7 @@ export const metadata: Metadata = {
   keywords: ["perfume", "fragrance", "luxury", "scent", "niche perfume", "luxury perfume store", "designer fragrances"],
   authors: [{ name: "Scêntia Artisans" }],
   creator: "Maison Scêntia",
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://your-domain.vercel.app"),
   alternates: {
     canonical: "/",
   },
@@ -69,16 +74,22 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${playfair.variable} ${inter.variable} antialiased font-sans`}>
+      <body className={`${playfair.variable} ${inter.variable} antialiased font-sans cursor-none`}>
         <QueryProvider>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="dark"
-            enableSystem
-          >
-            <CartSidepad />
-            {children}
-          </ThemeProvider>
+          <ComparisonProvider>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="dark"
+              enableSystem
+            >
+              <LuxuryCursor />
+              <CartSidepad />
+              <ComparisonBar />
+              <ComparisonView />
+              <Toaster position="top-center" richColors />
+              {children}
+            </ThemeProvider>
+          </ComparisonProvider>
         </QueryProvider>
       </body>
     </html>

@@ -2,11 +2,11 @@ import { MetadataRoute } from 'next';
 import { createClient } from '@/utils/supabase/server';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://your-domain.vercel.app';
   const supabase = await createClient();
 
   // Fetch all products for dynamic routes
-  const { data: products } = await supabase.from('products').select('slug, updated_at');
+  const { data: products } = await supabase.from('products').select('slug, updated_at').eq('is_active', true);
 
   const productRoutes = (products || []).map((product) => ({
     url: `${baseUrl}/product/${product.slug}`,

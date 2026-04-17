@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { Snowflake, Wind, Droplets, Sparkles } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 
 export default function EssencePage() {
   return (
@@ -101,16 +102,16 @@ export default function EssencePage() {
          <div className="max-w-2xl mx-auto space-y-12">
             <h2 className="font-playfair text-6xl uppercase leading-tight italic">Discover Your <br /> Personal Essence</h2>
             <div className="flex justify-center flex-wrap gap-6">
-               <a href="/essence/quiz">
+               <Link href="/essence/quiz">
                   <button className="h-16 px-12 bg-primary text-primary-foreground text-[10px] tracking-[0.4em] font-black uppercase hover:opacity-90 transition-all">
                      START PERSONALITY QUIZ
                   </button>
-               </a>
-               <a href="/shop">
+               </Link>
+               <Link href="/shop">
                   <button className="h-16 px-12 border border-primary/20 text-[10px] tracking-[0.4em] font-black uppercase hover:bg-primary/5 transition-all">
                      BROWSE THE VAULT
                   </button>
-               </a>
+               </Link>
             </div>
          </div>
       </section>

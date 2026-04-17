@@ -1,10 +1,12 @@
 import { ShopSidebar } from "@/features/shop/components/shop-sidebar";
 import { ProductCard } from "@/features/shop/components/product-card";
-import { getProducts } from "@/features/shop/actions";
+import { getProducts, getBrands, getCategories } from "@/features/shop/actions";
 import { ShopControls } from "@/features/shop/components/shop-controls";
 import { LoadMore } from "@/features/shop/components/load-more";
 import Image from "next/image";
 import { Metadata } from "next";
+import Link from "next/link";
+import { Suspense } from "react";
 
 export const metadata: Metadata = {
   title: "The Vault | Curated Luxury Scents",
@@ -20,16 +22,25 @@ export default async function ShopPage({
   const category = typeof params.category === 'string' ? params.category : undefined;
   const gender = typeof params.gender === 'string' ? params.gender : undefined;
   const scent_family = typeof params.family === 'string' ? params.family : undefined;
-  const sortBy = typeof params.sort === 'string' ? params.sort : undefined;
+  const concentration = typeof params.concentration === 'string' ? params.concentration : undefined;
+   const sortBy = typeof params.sort === 'string' ? params.sort : undefined;
+  const is_featured = params.featured === 'true';
+  const brand = typeof params.brand === 'string' ? params.brand : undefined;
   const limit = typeof params.limit === 'string' ? parseInt(params.limit) : 12;
 
   const products = await getProducts({ 
     category,
     gender, 
-    scent_family, 
+    scent_family,
+    brand,
+    concentration,
+    is_featured,
     sortBy, 
     limit 
   });
+
+  const brands = await getBrands();
+  const categories = await getCategories();
 
   return (
     <div className="flex flex-col min-h-screen animate-in fade-in duration-1000">
@@ -53,13 +64,17 @@ export default async function ShopPage({
       </section>
 
       <div className="container mx-auto px-6 md:px-12 py-20 flex flex-col lg:flex-row gap-16">
-        {/* Sidebar Filters */}
-        <ShopSidebar />
+        <Suspense fallback={<div className="w-72 h-screen bg-zinc-100/10 animate-pulse" />}>
+          {/* Sidebar Filters */}
+          <ShopSidebar brands={brands} categories={categories} />
+        </Suspense>
 
         {/* Main Content */}
         <div className="flex-1 space-y-16">
-          {/* Header / Toolbar */}
-          <ShopControls totalFound={products.length} />
+          <Suspense fallback={<div className="w-full h-20 bg-zinc-100/10 animate-pulse" />}>
+            {/* Header / Toolbar */}
+            <ShopControls totalFound={products.length} />
+          </Suspense>
 
           {/* Product Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-x-12 gap-y-24 reveal-up delay-300">
@@ -68,14 +83,32 @@ export default async function ShopPage({
             ))}
             
             {products.length === 0 && (
-              <div className="col-span-full py-60 text-center space-y-8 animate-in zoom-in-95 duration-700">
-                 <div className="w-20 h-20 border border-primary/20 rounded-full flex items-center justify-center mx-auto mb-10">
-                    <span className="text-primary/20 text-4xl">?</span>
+              <div className="col-span-full py-40 flex flex-col items-center justify-center text-center space-y-12 animate-in fade-in zoom-in-95 duration-1000 relative">
+                 <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] select-none pointer-events-none -rotate-6">
+                    <span className="font-playfair text-[20vw] uppercase font-bold tracking-tighter italic">EMPTY</span>
                  </div>
-                 <p className="font-playfair text-3xl text-muted-foreground italic tracking-tight">
-                   The vault is currently sealed for this selection.
-                 </p>
-                 <a href="/shop" className="text-[10px] tracking-[0.4em] text-primary font-black uppercase hover:underline">Return to All</a>
+                 
+                 <div className="relative z-10 space-y-8">
+                    <div className="space-y-4">
+                       <h2 className="text-xs tracking-[0.8em] font-black uppercase text-primary">SEALED VAULT</h2>
+                       <p className="font-playfair text-4xl md:text-5xl italic text-zinc-400 uppercase tracking-tighter max-w-xl mx-auto leading-[1.1]">
+                         This specific essence remains hidden in our archives.
+                       </p>
+                    </div>
+
+                    <div className="w-16 h-[1px] bg-primary/20 mx-auto" />
+
+                    <div className="space-y-6">
+                       <p className="text-xs tracking-[0.3em] text-zinc-500 uppercase font-bold">Try alternative filters or seek a different path.</p>
+                       <Link 
+                          href="/shop" 
+                          className="inline-flex items-center gap-4 text-xs tracking-[0.5em] text-primary font-black uppercase group"
+                       >
+                          <span>REFRESH VAULT</span>
+                          <span className="w-12 h-[1px] bg-primary scale-x-50 group-hover:scale-x-100 transition-transform origin-left duration-500" />
+                       </Link>
+                    </div>
+                 </div>
               </div>
             )}
           </div>

@@ -1,15 +1,15 @@
-import { createClient } from "@/utils/supabase/server";
-import { Users, Search, Mail, Calendar } from "lucide-react";
+import { Users, Mail, Calendar } from "lucide-react";
+import { getAdminCustomers } from "@/features/admin/actions";
+import { CustomerSearch } from "@/features/admin/components/customer-search";
+import { CustomerProfile } from "@/types/admin";
 
-export default async function AdminCustomersPage() {
-  const supabase = await createClient();
-  
-  // Real apps would fetch from auth.users or a public.profiles table
-  // Here we'll fetch from profiles assume it exists linked to auth.uid
-  const { data: customers } = await supabase
-    .from('profiles')
-    .select('*')
-    .order('created_at', { ascending: false });
+export default async function AdminCustomersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const { q } = await searchParams;
+  const customers = await getAdminCustomers(q);
 
   return (
     <div className="space-y-12 animate-in fade-in duration-1000">
@@ -21,16 +21,9 @@ export default async function AdminCustomersPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-8">
-        <div className="relative group">
-           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-           <input 
-             type="text" 
-             placeholder="SEARCH BY NAME OR EMAIL..." 
-             className="w-full bg-zinc-50 dark:bg-zinc-900/50 border border-border/10 h-16 px-12 text-[10px] tracking-widest uppercase outline-none focus:border-primary/40 transition-all"
-           />
-        </div>
+        <CustomerSearch defaultValue={q} />
 
-        <div className="border border-border/10 overflow-hidden">
+        <div className="border border-border/10 overflow-hidden bg-white dark:bg-zinc-950/50 backdrop-blur-md">
            <table className="w-full text-left border-collapse">
               <thead>
                  <tr className="bg-zinc-50 dark:bg-zinc-900/50 border-b border-border/10">
@@ -41,7 +34,7 @@ export default async function AdminCustomersPage() {
                  </tr>
               </thead>
               <tbody className="divide-y divide-border/5">
-                 {customers && customers.length > 0 ? customers.map((customer: any) => (
+                 {customers && customers.length > 0 ? customers.map((customer: CustomerProfile) => (
                     <tr key={customer.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-900/20 transition-colors">
                        <td className="p-6">
                           <div className="flex items-center gap-4">
@@ -64,7 +57,9 @@ export default async function AdminCustomersPage() {
                           </div>
                        </td>
                        <td className="p-6 text-right">
-                          <span className="text-[10px] font-bold tracking-widest">--- VND</span>
+                          <span className="text-[10px] font-bold tracking-widest text-primary">
+                             {customer.total_spent?.toLocaleString("vi-VN")} VND
+                          </span>
                        </td>
                     </tr>
                  )) : (

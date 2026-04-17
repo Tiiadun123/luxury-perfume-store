@@ -17,7 +17,9 @@ export function Navbar() {
   const { toggleCart, items } = useCart();
 
   useEffect(() => {
-    setMounted(true);
+    // Schedule hydration state to avoid cascading renders warning
+    const id = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(id);
   }, []);
 
   const cartCount = mounted ? items.reduce((sum, item) => sum + item.quantity, 0) : 0;

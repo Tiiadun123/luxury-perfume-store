@@ -1,14 +1,22 @@
 import { getProductBySlug, getRelatedProducts } from "@/features/shop/actions";
 import { getProductReviews } from "@/features/reviews/actions";
 import { Metadata } from "next";
-import Image from "next/image";
+import { ScentiaImage } from "@/components/ui/scentia-image";
 import { notFound } from "next/navigation";
 import { ProductDetailsClient } from "@/features/shop/components/product-details-client";
 import { ProductCard } from "@/features/shop/components/product-card";
 import { RotateCcw, ShieldCheck, Star, Truck } from "lucide-react";
+import { FragrancePyramid } from "@/features/shop/components/fragrance-pyramid";
+import { ReviewSection } from "@/features/reviews/components/review-section";
 
 interface ProductReview {
    id: string;
+   created_at: string;
+   rating: number;
+   comment: string;
+   profile: {
+      full_name: string | null;
+   } | null;
 }
 
 export async function generateMetadata({
@@ -69,14 +77,14 @@ export default async function ProductDetailPage({
         {/* Left: Product Gallery */}
         <div className="space-y-6">
            <div className="relative aspect-[4/5] overflow-hidden bg-zinc-50 dark:bg-zinc-950 border border-border/10 shadow-sm group">
-              <Image
+              <ScentiaImage
                 src={mainImage}
                 alt={product.name}
                 fill
                 priority
                 className="object-cover transition-transform duration-[2000ms] group-hover:scale-105"
               />
-              <div className="absolute top-8 left-8 px-5 py-2 bg-background/60 backdrop-blur-xl border border-white/10 text-[9px] tracking-[0.4em] text-foreground font-black uppercase">
+              <div className="absolute top-8 left-8 px-5 py-2 bg-background/60 backdrop-blur-xl border border-white/10 text-xs tracking-[0.4em] text-foreground font-black uppercase">
                  {product.concentration}
               </div>
            </div>
@@ -85,7 +93,7 @@ export default async function ProductDetailPage({
            <div className="grid grid-cols-4 gap-4">
               {product.images.slice(0, 4).map((img, idx) => (
                 <div key={idx} className="relative aspect-square border border-border/10 overflow-hidden cursor-pointer hover:border-primary/40 transition-all duration-500 group">
-                   <Image src={img.url} alt={`detail-${idx}`} fill className="object-cover transition-transform duration-700 group-hover:scale-110" />
+                   <ScentiaImage src={img.url} alt={`detail-${idx}`} fill className="object-cover transition-transform duration-700 group-hover:scale-110" />
                 </div>
               ))}
            </div>
@@ -124,39 +132,38 @@ export default async function ProductDetailPage({
               
               <div className="grid grid-cols-2 gap-x-12 gap-y-6 pt-8 border-t border-border/10">
                  <div className="space-y-2">
-                    <p className="text-[9px] tracking-[0.4em] font-black text-muted-foreground/60 uppercase">LONGEVITY</p>
+                    <p className="text-xs tracking-[0.4em] font-black text-muted-foreground/60 uppercase">LONGEVITY</p>
                     <p className="text-[11px] tracking-[0.2em] font-bold uppercase text-foreground">{product.longevity}</p>
                  </div>
                  <div className="space-y-2">
-                    <p className="text-[9px] tracking-[0.4em] font-black text-muted-foreground/60 uppercase">SILLAGE</p>
+                    <p className="text-xs tracking-[0.4em] font-black text-muted-foreground/60 uppercase">SILLAGE</p>
                     <p className="text-[11px] tracking-[0.2em] font-bold uppercase text-foreground">{product.sillage}</p>
                  </div>
               </div>
            </div>
 
-           {/* Olfactory Pyramid Section - Elegant Glassmorphism */}
-           <div className="space-y-10 p-12 bg-zinc-50/50 dark:bg-zinc-950/50 backdrop-blur-sm border border-border/10 relative overflow-hidden group reveal-up delay-500">
+           {/* Olfactory Pyramid Section - Visual Representation */}
+           <div className="space-y-16 p-12 bg-zinc-50/50 dark:bg-zinc-950/50 backdrop-blur-sm border border-border/10 relative overflow-hidden group reveal-up delay-500">
               <div className="absolute top-0 right-0 w-24 h-24 border-t border-r border-primary/10 transition-all duration-[1000ms] group-hover:w-32 group-hover:h-32" />
               <div className="absolute bottom-0 left-0 w-24 h-24 border-b border-l border-primary/10 transition-all duration-[1000ms] group-hover:w-32 group-hover:h-32" />
               
-              <h3 className="text-[10px] tracking-[0.5em] font-black uppercase text-primary border-b border-primary/10 pb-6">
-                 OLFACTORY PYRAMID
-              </h3>
-              
-              <div className="grid grid-cols-1 gap-10">
-                 <div className="space-y-3">
-                    <h4 className="text-[10px] tracking-[0.4em] font-black uppercase text-foreground">TOP NOTES</h4>
-                    <p className="text-[11px] tracking-widest text-muted-foreground uppercase leading-loose font-medium">{topNotes?.join(", ") || "Sparkling Essences"}</p>
-                 </div>
-                 <div className="space-y-3">
-                    <h4 className="text-[10px] tracking-[0.4em] font-black uppercase text-foreground">HEART NOTES</h4>
-                    <p className="text-[11px] tracking-widest text-muted-foreground uppercase leading-loose font-medium">{heartNotes?.join(", ") || "Eternal Blooms"}</p>
-                 </div>
-                 <div className="space-y-3">
-                    <h4 className="text-[10px] tracking-[0.4em] font-black uppercase text-foreground">BASE NOTES</h4>
-                    <p className="text-[11px] tracking-widest text-muted-foreground uppercase leading-loose font-medium">{baseNotes?.join(", ") || "Sacred Foundations"}</p>
-                 </div>
+              <div className="flex flex-col items-center text-center space-y-4">
+                <h3 className="text-xs tracking-[0.5em] font-black uppercase text-primary">
+                   OLFACTORY PYRAMID
+                </h3>
+                <p className="text-[10px] tracking-[0.3em] text-zinc-500 uppercase font-bold">The evolution of a fragment encapsulated in time.</p>
               </div>
+
+              <FragrancePyramid 
+                topNotes={topNotes || []} 
+                heartNotes={heartNotes || []} 
+                baseNotes={baseNotes || []} 
+              />
+           </div>
+
+           {/* Voice of Scêntia - Reviews & Testimonies */}
+           <div className="reveal-up delay-600">
+              <ReviewSection productId={product.id} reviews={reviews} />
            </div>
 
            {/* Trust Badges */}
@@ -184,27 +191,23 @@ export default async function ProductDetailPage({
       </div>
 
       {/* Related Products Section */}
-      <div className="mt-60 space-y-20 reveal-up">
-         <div className="text-center space-y-4">
-            <h3 className="text-[10px] tracking-[0.6em] font-black text-primary uppercase">YOU MAY ALSO SEEK</h3>
-            <p className="font-playfair text-5xl md:text-6xl uppercase tracking-tighter italic">Related Essences</p>
-         </div>
-         
-         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12">
-            {relatedProducts.length > 0 ? (
-               relatedProducts.map((p) => (
-                  <ProductCard 
-                    key={p.id} 
-                    {...p}
-                  />
-               ))
-            ) : (
-               [1, 2, 3, 4].map((i) => (
-                 <div key={i} className="border border-border/10 p-4 aspect-[3/4] bg-zinc-50/50 dark:bg-zinc-950/50 animate-pulse" />
-               ))
-            )}
-         </div>
-      </div>
+      {relatedProducts.length > 0 && (
+        <div className="mt-60 space-y-20 reveal-up">
+           <div className="text-center space-y-4">
+              <h3 className="text-[10px] tracking-[0.6em] font-black text-primary uppercase">YOU MAY ALSO SEEK</h3>
+              <p className="font-playfair text-5xl md:text-6xl uppercase tracking-tighter italic">Related Essences</p>
+           </div>
+           
+           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12">
+              {relatedProducts.map((p) => (
+                 <ProductCard 
+                   key={p.id} 
+                   {...p}
+                 />
+              ))}
+           </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -47,10 +47,30 @@ export function CartSidepad() {
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-8 space-y-8">
               {items.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-center space-y-6">
-                   <ShoppingBag className="w-12 h-12 text-zinc-200 dark:text-zinc-800" />
-                   <p className="font-playfair text-xl italic text-muted-foreground">Your sanctuary of scent is empty.</p>
-                   <Button variant="luxury" onClick={() => toggleCart(false)}>START DISCOVERY</Button>
+                <div className="h-full flex flex-col items-center justify-center text-center p-12 relative overflow-hidden group">
+                   <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 select-none opacity-[0.03] dark:opacity-[0.02] -rotate-12 group-hover:rotate-0 transition-transform duration-[2000ms]">
+                      <ShoppingBag className="w-96 h-96" />
+                   </div>
+                   
+                   <div className="relative z-10 space-y-8 animate-in fade-in zoom-in duration-1000">
+                      <div className="space-y-4">
+                         <h3 className="text-xs tracking-[0.6em] font-black uppercase text-primary">VACANT SANCTUARY</h3>
+                         <p className="font-playfair text-3xl italic tracking-tighter uppercase max-w-[240px] leading-[1.1]">
+                            Your collection of essences awaits its first discovery.
+                         </p>
+                      </div>
+                      
+                      <div className="w-12 h-[1px] bg-primary/30 mx-auto" />
+                      
+                      <Button 
+                         variant="luxury" 
+                         onClick={() => toggleCart(false)}
+                         className="h-16 px-12 text-xs tracking-[0.5em] font-black uppercase overflow-hidden relative group/btn"
+                      >
+                         <span className="relative z-10">START EXPLORATION</span>
+                         <div className="absolute inset-0 bg-primary opacity-0 group-hover/btn:opacity-5 transition-opacity duration-500" />
+                      </Button>
+                   </div>
                 </div>
               ) : (
                 items.map((item) => (

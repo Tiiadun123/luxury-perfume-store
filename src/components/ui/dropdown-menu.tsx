@@ -38,7 +38,7 @@ const DropdownMenu = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-const DropdownMenuTrigger = ({ children, asChild }: { children: React.ReactNode; asChild?: boolean }) => {
+const DropdownMenuTrigger = ({ children }: { children: React.ReactNode }) => {
   const { setOpen, open } = useDropdown();
   return (
     <div onClick={() => setOpen(!open)} className="cursor-pointer">

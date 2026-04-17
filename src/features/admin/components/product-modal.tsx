@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { upsertProduct, getBrands } from "../actions";
+import { Product, Brand } from "@/types/admin";
 
 const productSchema = z.object({
   id: z.string().optional(),
@@ -40,10 +41,10 @@ export function ProductModal({
   product, 
   onClose 
 }: { 
-  product?: any; 
+  product?: Product; 
   onClose: () => void;
 }) {
-  const [brands, setBrands] = useState<any[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
   const [loading, setLoading] = useState(false);
 
   const { register, control, handleSubmit, formState: { errors } } = useForm<ProductFormValues>({
@@ -59,14 +60,14 @@ export function ProductModal({
       description: product?.description || "",
       is_active: product?.is_active ?? true,
       is_featured: product?.is_featured ?? false,
-      variants: product?.variants?.map((v: any) => ({
+      variants: product?.variants?.map((v) => ({
         id: v.id,
         size: v.size,
         sku: v.sku || "",
         price: v.price,
         stock_quantity: v.stock_quantity
       })) || [{ size: 50, sku: "", price: 0, stock_quantity: 10 }],
-      images: product?.images?.map((img: any) => ({ url: img.url })) || [{ url: "" }]
+      images: product?.images?.map((img) => ({ url: img.url })) || [{ url: "" }]
     }
   });
 

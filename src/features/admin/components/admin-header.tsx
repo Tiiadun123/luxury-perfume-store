@@ -8,6 +8,15 @@ import { Input } from "@/components/ui/input";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuLabel, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
+
 export function AdminHeader() {
   const pathname = usePathname();
   
@@ -21,6 +30,13 @@ export function AdminHeader() {
   };
 
   const pathParts = pathname.split("/").filter(p => p !== "");
+
+  const handleLogout = async () => {
+    const { createClient } = await import("@/utils/supabase/client");
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    window.location.href = "/login";
+  };
 
   return (
     <header className="h-20 border-b border-border/10 px-12 flex items-center justify-between bg-background/50 backdrop-blur-md sticky top-0 z-40">
@@ -67,15 +83,38 @@ export function AdminHeader() {
             <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-primary rounded-full" />
           </Button>
           
-          <div className="flex items-center gap-4 pl-4 border-l border-border/10">
-            <div className="text-right hidden sm:block">
-              <p className="text-[10px] font-black tracking-widest uppercase">Admin Artisan</p>
-              <p className="text-[8px] text-muted-foreground uppercase">Privileged Access</p>
-            </div>
-            <div className="w-10 h-10 rounded-full border border-primary/20 bg-primary/5 flex items-center justify-center overflow-hidden">
-               <User className="w-5 h-5 text-primary" />
-            </div>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex items-center gap-4 pl-4 border-l border-border/10 hover:opacity-80 transition-opacity">
+                <div className="text-right hidden sm:block">
+                  <p className="text-[10px] font-black tracking-widest uppercase">Admin Artisan</p>
+                  <p className="text-[8px] text-muted-foreground uppercase">Privileged Access</p>
+                </div>
+                <div className="w-10 h-10 rounded-full border border-primary/20 bg-primary/5 flex items-center justify-center overflow-hidden">
+                   <User className="w-5 h-5 text-primary" />
+                </div>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56 bg-zinc-950 border-border/20">
+              <DropdownMenuLabel className="text-[10px] tracking-widest uppercase opacity-60">System Operator</DropdownMenuLabel>
+              <DropdownMenuSeparator className="bg-border/10" />
+              <DropdownMenuItem className="text-[11px] font-bold tracking-widest uppercase cursor-pointer py-3 hover:bg-primary/10">
+                <Link href="/profile" className="flex w-full items-center">
+                  Private Profile
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem className="text-[11px] font-bold tracking-widest uppercase cursor-pointer py-3 hover:bg-primary/10">
+                System Log
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-border/10" />
+              <DropdownMenuItem 
+                onClick={handleLogout}
+                className="text-[11px] font-bold tracking-widest uppercase cursor-pointer py-3 text-red-500 hover:bg-red-500/10 focus:text-red-500"
+              >
+                Terminate Session
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </header>

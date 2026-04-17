@@ -2,6 +2,7 @@ import { getAdminStats, getAllOrders } from "../actions";
 import { BarChart3, Package, ShoppingCart, AlertTriangle, ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { RevenueChart } from "./revenue-chart";
 
 export default async function AdminDashboard() {
   const stats = await getAdminStats();
@@ -19,9 +20,9 @@ export default async function AdminDashboard() {
       {/* Analytics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
          {[
-           { label: "Revenue", value: `${stats.revenue.toLocaleString("vi-VN")} VND`, icon: BarChart3, trend: "+12.5%", trendColor: "text-green-500" },
-           { label: "Orders", value: stats.orderCount, icon: ShoppingCart, trend: "+4", trendColor: "text-green-500" },
-           { label: "Collections", value: "24", icon: Package },
+           { label: "Revenue", value: `${stats.revenue.toLocaleString("vi-VN")} VND`, icon: BarChart3, trend: stats.revenueTrend || "0%", trendColor: stats.revenueTrend?.startsWith('+') ? "text-green-500" : "text-red-500" },
+           { label: "Orders", value: stats.orderCount, icon: ShoppingCart, trend: stats.orderTrend || "0", trendColor: "text-green-500" },
+           { label: "Collections", value: stats.productCount, icon: Package },
            { label: "Low Stock", value: stats.lowStock.length, icon: AlertTriangle, color: stats.lowStock.length > 0 ? "text-destructive" : "" }
          ].map((card, i) => (
            <div key={i} className="p-8 bg-zinc-950/20 border border-border/10 space-y-4 hover:border-primary/20 transition-all group">
@@ -45,42 +46,8 @@ export default async function AdminDashboard() {
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-          {/* Revenue Trend Chart */}
-          <div className="lg:col-span-2 p-8 bg-zinc-950/20 border border-border/10 space-y-8 h-full">
-             <div className="space-y-1">
-                <h2 className="text-xs tracking-[0.4em] font-black uppercase text-primary">REVENUE TREND</h2>
-                <p className="text-[8px] text-muted-foreground uppercase tracking-widest">A Voyage through time and value</p>
-             </div>
-             
-             <div className="h-[250px] flex items-end justify-between gap-4 pt-4">
-                {Object.entries(stats.monthlyRevenue || {}).map(([month, value]) => {
-                  const maxVal = Math.max(...Object.values(stats.monthlyRevenue || {}) as number[]) || 1;
-                  const height = ((value as number) / maxVal) * 100;
-                  return (
-                    <div key={month} className="flex-1 flex flex-col items-center gap-4 group h-full">
-                       <div className="relative w-full flex flex-col items-center justify-end h-full">
-                          <div className="absolute -top-8 px-2 py-1 bg-zinc-900 border border-border/20 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap text-[8px] font-bold z-10">
-                             {(value as number).toLocaleString()} VND
-                          </div>
-                          <div 
-                             className="w-full bg-primary/20 group-hover:bg-primary/40 transition-all duration-700 border-t border-primary/40 relative"
-                             style={{ height: `${height}%` }}
-                          >
-                             <div className="absolute inset-x-0 top-0 h-px bg-primary scale-x-0 group-hover:scale-x-100 transition-transform duration-700" />
-                          </div>
-                       </div>
-                       <span className="text-[9px] tracking-widest font-black uppercase text-muted-foreground group-hover:text-primary transition-colors">
-                          {month}
-                       </span>
-                    </div>
-                  );
-                })}
-                {!stats.monthlyRevenue || Object.keys(stats.monthlyRevenue).length === 0 && (
-                   <div className="w-full h-full flex items-center justify-center border border-dashed border-border/20 text-[8px] tracking-[0.5em] text-muted-foreground uppercase">
-                      No commerce recorded in this era
-                   </div>
-                )}
-             </div>
+          <div className="lg:col-span-2 space-y-8">
+             <RevenueChart data={stats.monthlyRevenue || {}} />
           </div>
 
           {/* Stock Alerts */}
@@ -145,7 +112,7 @@ export default async function AdminDashboard() {
                      <tr key={order.id} className="border-b border-border/5 group hover:bg-white/5 transition-colors">
                         <td className="p-6">
                            <p className="text-[10px] font-bold tracking-widest uppercase">#{order.order_number}</p>
-                           <p className="text-[8px] text-muted-foreground uppercase">{order.customer_name}</p>
+                           <p className="text-[8px] text-muted-foreground uppercase">{order.customer_name || 'Anonymous'}</p>
                         </td>
                         <td className="p-6 text-center text-[10px] text-muted-foreground uppercase tracking-widest">
                            {new Date(order.created_at).toLocaleDateString()}

@@ -41,10 +41,10 @@ export const useCart = create<CartStore>()(
         
         if (existingIndex > -1) {
           const newItems = [...state.items];
+          const newQuantity = Math.min(10, newItems[existingIndex].quantity + item.quantity);
           newItems[existingIndex] = {
             ...newItems[existingIndex],
-            // Update quantity and ensure variantId is synced to the latest one provided
-            quantity: newItems[existingIndex].quantity + item.quantity,
+            quantity: newQuantity,
             variantId: item.variantId || newItems[existingIndex].variantId
           };
           return {
@@ -53,13 +53,13 @@ export const useCart = create<CartStore>()(
           };
         }
         
-        return { items: [...state.items, item], isOpen: true };
+        return { items: [...state.items, { ...item, quantity: Math.min(10, item.quantity) }], isOpen: true };
       }),
       removeItem: (variantId) => set((state) => ({
         items: state.items.filter(i => i.variantId !== variantId)
       })),
       updateQuantity: (variantId, quantity) => set((state) => ({
-        items: state.items.map(i => i.variantId === variantId ? { ...i, quantity: Math.max(1, quantity) } : i)
+        items: state.items.map(i => i.variantId === variantId ? { ...i, quantity: Math.min(10, Math.max(1, quantity)) } : i)
       })),
       toggleCart: (open) => set((state) => ({ isOpen: open ?? !state.isOpen })),
       clearCart: () => set({ items: [] }),

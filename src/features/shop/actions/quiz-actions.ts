@@ -22,6 +22,8 @@ interface QuizProductRow {
       }[]
     | null;
   variants: {
+    id: string;
+    size: number;
     price: number | null;
   }[] | null;
   images: {
@@ -43,7 +45,7 @@ export async function getQuizRecommendations(answers: QuizAnswers): Promise<Prod
     .select(`
       id, name, slug, 
       brand:brands(name),
-      variants:product_variants(price),
+      variants:product_variants(id, size, price),
       images:product_images(url)
     `)
     .eq("scent_family", family)
@@ -54,6 +56,8 @@ export async function getQuizRecommendations(answers: QuizAnswers): Promise<Prod
   
   return (data as QuizProductRow[]).map((product) => ({
     id: product.id,
+    defaultVariantId: product.variants?.[0]?.id || "",
+    size: product.variants?.[0]?.size || 0,
     name: product.name,
     slug: product.slug,
     brand: (Array.isArray(product.brand) ? product.brand[0]?.name : product.brand?.name) || "SCENTIA",

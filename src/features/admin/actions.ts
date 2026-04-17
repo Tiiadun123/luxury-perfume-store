@@ -1,20 +1,26 @@
 "use server";
 
-import { createClient } from "@/utils/supabase/server";
+import { supabaseAdmin } from "@/utils/supabase/admin";
 import { revalidatePath } from "next/cache";
+import { Product, CustomerProfile, ShippingZone, Banner, Brand, SiteSettings } from "@/types/admin";
 
 export async function getAdminStats() {
-  const supabase = await createClient();
+  const supabase = supabaseAdmin;
 
   // 1. Fetch Total Orders
   const { count: orderCount } = await supabase
     .from("orders")
     .select("*", { count: "exact", head: true });
 
+  const { count: productCount } = await supabase
+    .from("products")
+    .select("*", { count: "exact", head: true });
+
   // 2. Fetch Total Revenue
   const { data: revenueData } = await supabase
     .from("orders")
-    .select("total_amount");
+    .select("total_amount")
+    .eq("payment_status", "paid");
   
   const revenue = revenueData?.reduce((sum, o) => sum + o.total_amount, 0) || 0;
 
@@ -37,22 +43,56 @@ export async function getAdminStats() {
     .gte("created_at", sixMonthsAgo.toISOString())
     .eq("payment_status", "paid");
 
+  // Calculate Month-over-Month growth
+  const now = new Date();
+  const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
+  
+  const { data: currentMonthOrders } = await supabase
+    .from("orders")
+    .select("total_amount")
+    .gte("created_at", currentMonthStart)
+    .eq("payment_status", "paid");
+
+  const { data: lastMonthOrders } = await supabase
+    .from("orders")
+    .select("total_amount")
+    .gte("created_at", lastMonthStart)
+    .lt("created_at", currentMonthStart)
+    .eq("payment_status", "paid");
+
+  const currentRevenue = currentMonthOrders?.reduce((sum, o) => sum + o.total_amount, 0) || 0;
+  const lastRevenue = lastMonthOrders?.reduce((sum, o) => sum + o.total_amount, 0) || 0;
+  const revenueTrend = lastRevenue > 0 ? ((currentRevenue - lastRevenue) / lastRevenue * 100).toFixed(1) : "0";
+
   const monthlyRevenue: Record<string, number> = {};
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date();
+    d.setMonth(d.getMonth() - i);
+    const m = d.toLocaleString('en-US', { month: 'short' });
+    monthlyRevenue[m] = 0;
+  }
+
   trendData?.forEach(order => {
     const month = new Date(order.created_at).toLocaleString('en-US', { month: 'short' });
-    monthlyRevenue[month] = (monthlyRevenue[month] || 0) + order.total_amount;
+    if (monthlyRevenue.hasOwnProperty(month)) {
+      monthlyRevenue[month] += order.total_amount;
+    }
   });
 
   return {
-    orderCount,
+    orderCount: orderCount || 0,
+    productCount: productCount || 0,
     revenue,
+    revenueTrend: `${Number(revenueTrend) >= 0 ? '+' : ''}${revenueTrend}%`,
+    orderTrend: `+${currentMonthOrders?.length || 0}`,
     lowStock: lowStock || [],
     monthlyRevenue
   };
 }
 
 export async function getAllOrders() {
-  const supabase = await createClient();
+  const supabase = supabaseAdmin;
   const { data: orders } = await supabase
     .from("orders")
     .select(`
@@ -66,25 +106,66 @@ export async function getAllOrders() {
   return orders || [];
 }
 
+import { resend } from "@/lib/resend";
+import { getOrderShippedHtml } from "@/lib/emails/order-shipped-email";
+
 export async function updateOrderStatus(orderId: string, status: string) {
-  const supabase = await createClient();
+  const supabase = supabaseAdmin;
+  
+  // 1. Update the status
   const { error } = await supabase
     .from("orders")
-    .update({ status })
+    .update({ 
+      status,
+      updated_at: new Date().toISOString()
+    })
     .eq("id", orderId);
 
-  if (!error) revalidatePath("/admin/orders");
-  return { success: !error };
+  if (error) return { success: false, error: error.message };
+
+  // 2. Trigger automated email if status is "shipped"
+  if (status === "shipped") {
+    try {
+      const { data: order } = await supabase
+        .from("orders")
+        .select("order_number, customer_name, customer_email, recipient_name, tracking_number")
+        .eq("id", orderId)
+        .single();
+      
+      if (order && (order.customer_email || order.customer_name)) {
+        const email = order.customer_email;
+        const name = order.customer_name || order.recipient_name || "MEMBER";
+        
+        await resend.emails.send({
+          from: "Maison Scêntia <noreply@maison-scentia.com>",
+          to: [email],
+          subject: `Maison Scêntia - Đơn hàng #${order.order_number} đang được giao`,
+          html: getOrderShippedHtml({
+            customerName: name,
+            orderNumber: order.order_number,
+            trackingNumber: order.tracking_number
+          })
+        });
+      }
+    } catch (emailErr) {
+      console.error("Failed to send shipping email:", emailErr);
+      // We don't fail the whole action if email fails
+    }
+  }
+
+  revalidatePath("/admin/orders");
+  return { success: true };
 }
 
 export async function getAllAdminProducts() {
-  const supabase = await createClient();
+  const supabase = supabaseAdmin;
   const { data: products } = await supabase
     .from("products")
     .select(`
       *,
       brand:brands(name),
-      variants:product_variants(*)
+      variants:product_variants(*),
+      images:product_images(*)
     `)
     .order("created_at", { ascending: false });
 
@@ -92,10 +173,8 @@ export async function getAllAdminProducts() {
 }
 
 export async function deleteProduct(productId: string) {
-  const supabase = await createClient();
+  const supabase = supabaseAdmin;
   
-  // Due to foreign key cascades, deleting the product should clean up variants/images if configured,
-  // otherwise we delete them manually. Let's assume standard cascade.
   const { error } = await supabase
     .from("products")
     .delete()
@@ -106,7 +185,7 @@ export async function deleteProduct(productId: string) {
 }
 
 export async function toggleProductStatus(productId: string, isActive: boolean) {
-  const supabase = await createClient();
+  const supabase = supabaseAdmin;
   const { error } = await supabase
     .from("products")
     .update({ is_active: isActive })
@@ -117,7 +196,7 @@ export async function toggleProductStatus(productId: string, isActive: boolean) 
 }
 
 export async function getBrands() {
-  const supabase = await createClient();
+  const supabase = supabaseAdmin;
   const { data: brands } = await supabase
     .from("brands")
     .select("*")
@@ -126,12 +205,42 @@ export async function getBrands() {
   return brands || [];
 }
 
-export async function upsertProduct(data: any) {
-  const supabase = await createClient();
+export async function upsertBrand(data: Partial<Brand>) {
+  const supabase = supabaseAdmin;
+  const { id, name, ...rest } = data;
+  
+  const slug = data.slug || (name ? name.toLowerCase().replace(/\s+/g, '-') : '');
+
+  const { error } = await supabase
+    .from("brands")
+    .upsert({
+      ...(id ? { id } : {}),
+      name,
+      slug,
+      ...rest,
+      updated_at: new Date().toISOString()
+    });
+
+  if (!error) revalidatePath("/admin/products");
+  return { success: !error, error };
+}
+
+export async function deleteBrand(id: string) {
+  const supabase = supabaseAdmin;
+  const { error } = await supabase
+    .from("brands")
+    .delete()
+    .eq("id", id);
+  
+  if (!error) revalidatePath("/admin/products");
+  return { success: !error, error };
+}
+
+export async function upsertProduct(data: Omit<Partial<Product>, 'brand'> & { brand?: { id: string } }) {
+  const supabase = supabaseAdmin;
   const { id, variants, images, brand, ...productData } = data;
 
   try {
-    // 1. Upsert Product
     const { data: product, error: pError } = await supabase
       .from("products")
       .upsert({
@@ -145,24 +254,20 @@ export async function upsertProduct(data: any) {
 
     if (pError) throw pError;
 
-    // 2. Handle Variants
     if (variants) {
-      // Get existing variant IDs
       const { data: existingVariants } = await supabase
         .from("product_variants")
         .select("id")
         .eq("product_id", product.id);
       
       const existingIds = existingVariants?.map(v => v.id) || [];
-      const newIds = variants.map((v: any) => v.id).filter(Boolean);
+      const newIds = variants.map((v) => v.id).filter(Boolean);
       
-      // Delete variants not in the new list
       const toDelete = existingIds.filter(id => !newIds.includes(id));
       if (toDelete.length > 0) {
         await supabase.from("product_variants").delete().in("id", toDelete);
       }
 
-      // Upsert current variants
       for (const variant of variants) {
         await supabase.from("product_variants").upsert({
           ...variant,
@@ -171,12 +276,10 @@ export async function upsertProduct(data: any) {
       }
     }
 
-    // 3. Handle Images
     if (images) {
-      // Simplest approach: delete and re-insert images
       await supabase.from("product_images").delete().eq("product_id", product.id);
       
-      const imagesToInsert = images.map((img: any, index: number) => ({
+      const imagesToInsert = images.map((img, index: number) => ({
         product_id: product.id,
         url: img.url,
         alt_text: img.alt_text || product.name,
@@ -190,16 +293,51 @@ export async function upsertProduct(data: any) {
     revalidatePath("/admin/products");
     revalidatePath("/shop");
     return { success: true, data: product };
-  } catch (error: any) {
+  } catch (error) {
     console.error("Upsert failed:", error);
-    return { success: false, error: error.message };
+    return { success: false, error: (error as Error).message };
   }
+}
+
+export async function getAdminCustomers(search?: string) {
+  const supabase = supabaseAdmin;
+  
+  let query = supabase
+    .from('profiles')
+    .select(`
+      *,
+      orders(total_amount, payment_status)
+    `)
+    .order('created_at', { ascending: false });
+
+  if (search) {
+    const safeSearch = search.replace(/[%_]/g, '\\$&');
+    query = query.or(`full_name.ilike.%${safeSearch}%,email.ilike.%${safeSearch}%`);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error("Error fetching customers:", error);
+    return [];
+  }
+
+  return (data || []).map((customer) => {
+    const totalSpent = (customer.orders as { total_amount: number, payment_status: string }[])
+      ?.filter((o) => o.payment_status === 'paid')
+      .reduce((sum: number, o) => sum + (o.total_amount || 0), 0) || 0;
+    
+    return {
+      ...customer,
+      total_spent: totalSpent
+    } as CustomerProfile;
+  });
 }
 
 // --- Logistics & Shipping ---
 
 export async function getShippingZones() {
-  const supabase = await createClient();
+  const supabase = supabaseAdmin;
   const { data: zones } = await supabase
     .from("shipping_zones")
     .select("*")
@@ -207,13 +345,14 @@ export async function getShippingZones() {
   return zones || [];
 }
 
-export async function upsertShippingZone(data: any) {
-  const supabase = await createClient();
+export async function upsertShippingZone(data: Partial<ShippingZone>) {
+  const supabase = supabaseAdmin;
+  const { id, ...rest } = data;
   const { error } = await supabase
     .from("shipping_zones")
     .upsert({
-      ...data,
-      id: data.id || undefined
+      ...rest,
+      ...(id ? { id } : {})
     });
   
   if (!error) revalidatePath("/admin/logistics");
@@ -221,7 +360,7 @@ export async function upsertShippingZone(data: any) {
 }
 
 export async function deleteShippingZone(id: string) {
-  const supabase = await createClient();
+  const supabase = supabaseAdmin;
   const { error } = await supabase
     .from("shipping_zones")
     .delete()
@@ -234,7 +373,7 @@ export async function deleteShippingZone(id: string) {
 // --- CMS & Banners ---
 
 export async function getBanners() {
-  const supabase = await createClient();
+  const supabase = supabaseAdmin;
   const { data: banners } = await supabase
     .from("banners")
     .select("*")
@@ -242,24 +381,25 @@ export async function getBanners() {
   return banners || [];
 }
 
-export async function upsertBanner(data: any) {
-  const supabase = await createClient();
+export async function upsertBanner(data: Partial<Banner>) {
+  const supabase = supabaseAdmin;
+  const { id, ...rest } = data;
   const { error } = await supabase
     .from("banners")
     .upsert({
-      ...data,
-      id: data.id || undefined
+      ...rest,
+      ...(id ? { id } : {})
     });
   
   if (!error) {
     revalidatePath("/admin/cms");
-    revalidatePath("/"); // Home page usually shows banners
+    revalidatePath("/");
   }
   return { success: !error, error };
 }
 
 export async function deleteBanner(id: string) {
-  const supabase = await createClient();
+  const supabase = supabaseAdmin;
   const { error } = await supabase
     .from("banners")
     .delete()
@@ -269,5 +409,35 @@ export async function deleteBanner(id: string) {
     revalidatePath("/admin/cms");
     revalidatePath("/");
   }
+  return { success: !error, error };
+}
+// --- Site Settings ---
+
+export async function getSiteSettings() {
+  const supabase = supabaseAdmin;
+  const { data, error } = await supabase
+    .from("site_settings")
+    .select("*")
+    .eq("id", 1)
+    .single();
+
+  if (error) {
+    console.error("Error fetching site settings:", error);
+    return null;
+  }
+  return data;
+}
+
+export async function updateSiteSettings(data: Partial<SiteSettings>) {
+  const supabase = supabaseAdmin;
+  const { error } = await supabase
+    .from("site_settings")
+    .update({
+      ...data,
+      updated_at: new Date().toISOString()
+    })
+    .eq("id", 1);
+
+  if (!error) revalidatePath("/admin/settings");
   return { success: !error, error };
 }

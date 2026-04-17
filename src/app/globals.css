@@ -167,4 +167,40 @@
       transform: translateX(100%);
     }
   }
+
+  /* 💎 Luxury Animations */
+  @keyframes slow-zoom {
+    0% { transform: scale(1); }
+    100% { transform: scale(1.15); }
+  }
+
+  @keyframes scroll-down {
+    0% { transform: translateY(-100%); }
+    50% { transform: translateY(100%); }
+    100% { transform: translateY(100%); }
+  }
+
+  .animate-slow-zoom {
+    animation: slow-zoom 20s ease-in-out infinite alternate;
+  }
+
+  .animate-scroll-down {
+    animation: scroll-down 3s cubic-bezier(0.76, 0, 0.24, 1) infinite;
+  }
+
+  /* 🖋️ Typography Utilities */
+  .reveal-up {
+    mask-image: linear-gradient(to bottom, black 0%, black 100%);
+    mask-size: 100% 200%;
+    mask-position: 0% 100%;
+    transition: mask-position 1s cubic-bezier(0.76, 0, 0.24, 1);
+  }
+
+  .reveal-up:hover {
+    mask-position: 0% 0%;
+  }
 }
+.custom-scrollbar::-webkit-scrollbar { width: 2px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: oklch(0.75 0.12 85 / 0.2); }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: oklch(0.75 0.12 85 / 0.4); }
