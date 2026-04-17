@@ -66,7 +66,7 @@ export default async function ShopPage({
       <div className="container mx-auto px-6 md:px-12 py-20 flex flex-col lg:flex-row gap-16">
         <Suspense fallback={<div className="w-72 h-screen bg-zinc-100/10 animate-pulse" />}>
           {/* Sidebar Filters */}
-          <ShopSidebar brands={brands} categories={categories} />
+          <ShopSidebar brands={brands} />
         </Suspense>
 
         {/* Main Content */}

@@ -19,6 +19,7 @@ export default function AdminSettingsPage() {
   }, []);
 
   const handleSave = () => {
+    if (!settings) return;
     startTransition(async () => {
       const result = await updateSiteSettings(settings);
       if (result.success) {
