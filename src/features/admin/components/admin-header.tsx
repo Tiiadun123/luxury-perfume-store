@@ -84,7 +84,7 @@ export function AdminHeader() {
           </Button>
           
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+            <DropdownMenuTrigger>
               <button className="flex items-center gap-4 pl-4 border-l border-border/10 hover:opacity-80 transition-opacity">
                 <div className="text-right hidden sm:block">
                   <p className="text-[10px] font-black tracking-widest uppercase">Admin Artisan</p>
