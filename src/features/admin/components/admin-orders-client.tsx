@@ -107,7 +107,7 @@ export function AdminOrdersClient({ initialOrders }: { initialOrders: Order[] })
                 </td>
                 <td className="p-6 text-right">
                   <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
+                    <DropdownMenuTrigger>
                       <Button variant="ghost" size="icon" className="w-8 h-8 text-muted-foreground hover:text-primary transition-all">
                         <MoreHorizontal className="w-4 h-4" />
                       </Button>
