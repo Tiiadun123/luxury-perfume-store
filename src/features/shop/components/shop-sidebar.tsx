@@ -1,10 +1,11 @@
 "use client";
 
-import { ChevronRight, X, Search } from "lucide-react";
+import { ChevronRight, X, Search, SlidersHorizontal } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
+import { AnimatePresence, motion } from "framer-motion";
 
 const CATEGORIES = [
   { label: "ALL FRAGRANCES", value: null },
@@ -58,8 +59,10 @@ export function ShopSidebar({ brands = [] }: ShopSidebarProps) {
 
   const hasFilters = activeGender || activeFamily || activeConcentration || activeBrand;
 
-  return (
-    <aside className="w-72 hidden lg:flex flex-col gap-12 sticky top-32 h-fit pr-8">
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+
+  const filterContent = (
+    <>
       {/* Header with Clear Filter */}
       <div className="flex items-center justify-between border-b border-primary/20 pb-4">
         <h3 className="text-xs tracking-[0.3em] font-bold text-primary uppercase">
@@ -203,6 +206,53 @@ export function ShopSidebar({ brands = [] }: ShopSidebarProps) {
           )}
         </div>
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Mobile Filter Toggle Button */}
+      <button
+        onClick={() => setIsMobileOpen(true)}
+        className="lg:hidden fixed bottom-6 right-6 z-50 flex items-center gap-2 px-5 py-3 bg-primary text-primary-foreground text-[10px] tracking-[0.3em] font-black uppercase shadow-2xl hover:scale-105 transition-transform"
+      >
+        <SlidersHorizontal className="w-4 h-4" />
+        FILTERS
+      </button>
+
+      {/* Mobile Filter Sheet */}
+      <AnimatePresence>
+        {isMobileOpen && (
+          <motion.div
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "100%" }}
+            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+            className="fixed inset-0 z-[100] bg-background overflow-y-auto p-8 pt-12 lg:hidden"
+          >
+            <div className="flex justify-between items-center mb-10 border-b border-primary/20 pb-6">
+              <h3 className="text-xs tracking-[0.3em] font-bold text-primary uppercase">REFINE SELECTION</h3>
+              <button onClick={() => setIsMobileOpen(false)}>
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="flex flex-col gap-12">
+              {filterContent}
+            </div>
+            <button
+              onClick={() => setIsMobileOpen(false)}
+              className="w-full mt-10 h-14 bg-primary text-primary-foreground text-[10px] tracking-[0.4em] font-black uppercase"
+            >
+              VIEW RESULTS
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Desktop Sidebar */}
+      <aside className="w-72 hidden lg:flex flex-col gap-12 sticky top-32 h-fit pr-8">
+        {filterContent}
+      </aside>
+    </>
   );
 }

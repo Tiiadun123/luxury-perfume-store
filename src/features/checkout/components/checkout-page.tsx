@@ -85,7 +85,7 @@ export default function CheckoutPage() {
            <CheckCircle2 className="w-16 h-16 text-primary" />
         </motion.div>
         <div className="space-y-4">
-          <h1 className="font-playfair text-6xl uppercase">Your Journey Begins</h1>
+          <h1 className="font-playfair text-4xl sm:text-6xl uppercase">Your Journey Begins</h1>
           <p className="text-xs tracking-[0.4em] text-primary font-black uppercase">Order #{successOrder.number}</p>
         </div>
         <p className="max-w-md text-sm leading-relaxed tracking-widest text-muted-foreground uppercase">

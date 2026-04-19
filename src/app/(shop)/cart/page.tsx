@@ -79,7 +79,7 @@ export default function CartPage() {
                   exit={{ opacity: 0, x: -100 }}
                   className="flex flex-col sm:flex-row gap-8 sm:items-center py-8 border-b border-border/10 group"
                 >
-                  <div className="relative aspect-[3/4] w-full sm:w-40 overflow-hidden bg-zinc-50 dark:bg-zinc-950 border border-border/5">
+                  <div className="relative aspect-[3/4] w-32 sm:w-40 shrink-0 overflow-hidden bg-zinc-50 dark:bg-zinc-950 border border-border/5">
                     <Image
                       src={item.image}
                       alt={item.name}

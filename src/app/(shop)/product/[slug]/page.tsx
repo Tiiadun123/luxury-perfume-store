@@ -106,7 +106,7 @@ export default async function ProductDetailPage({
                  <p className="text-[10px] tracking-[0.5em] text-primary font-black uppercase reveal-up">
                    {product.brand?.name}
                  </p>
-                 <h1 className="font-playfair text-5xl md:text-7xl tracking-tighter leading-none reveal-up delay-100 uppercase">
+                 <h1 className="font-playfair text-3xl sm:text-5xl md:text-7xl tracking-tighter leading-none reveal-up delay-100 uppercase">
                    {product.name}
                  </h1>
               </div>
@@ -143,7 +143,7 @@ export default async function ProductDetailPage({
            </div>
 
            {/* Olfactory Pyramid Section - Visual Representation */}
-           <div className="space-y-16 p-12 bg-zinc-50/50 dark:bg-zinc-950/50 backdrop-blur-sm border border-border/10 relative overflow-hidden group reveal-up delay-500">
+           <div className="space-y-16 p-6 sm:p-12 bg-zinc-50/50 dark:bg-zinc-950/50 backdrop-blur-sm border border-border/10 relative overflow-hidden group reveal-up delay-500">
               <div className="absolute top-0 right-0 w-24 h-24 border-t border-r border-primary/10 transition-all duration-[1000ms] group-hover:w-32 group-hover:h-32" />
               <div className="absolute bottom-0 left-0 w-24 h-24 border-b border-l border-primary/10 transition-all duration-[1000ms] group-hover:w-32 group-hover:h-32" />
               
@@ -167,7 +167,7 @@ export default async function ProductDetailPage({
            </div>
 
            {/* Trust Badges */}
-           <div className="grid grid-cols-3 gap-8 pt-12 border-t border-border/10 reveal-up delay-600">
+           <div className="grid grid-cols-3 gap-4 sm:gap-8 pt-12 border-t border-border/10 reveal-up delay-600">
               <div className="flex flex-col items-center gap-3 text-center transition-colors hover:text-primary group">
                  <div className="p-3 rounded-full bg-zinc-50 dark:bg-zinc-950 group-hover:bg-primary/5 transition-colors">
                     <Truck className="w-5 h-5 text-primary/40 stroke-[1.5]" />

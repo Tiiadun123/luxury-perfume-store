@@ -37,7 +37,7 @@ export default async function HomePage() {
                  <p className="text-[10px] tracking-[0.8em] text-primary font-black uppercase italic reveal-up">
                     L&rsquo;art de la Parfumerie
                  </p>
-                 <h1 className="font-playfair text-7xl md:text-[10rem] text-white tracking-tighter leading-[0.85] uppercase">
+                 <h1 className="font-playfair text-5xl sm:text-7xl md:text-[10rem] text-white tracking-tighter leading-[0.85] uppercase">
                     Maison <br /> 
                     <span className="italic font-light text-primary/80">Scêntia</span>
                  </h1>

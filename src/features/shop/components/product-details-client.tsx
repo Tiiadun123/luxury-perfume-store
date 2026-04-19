@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/features/cart/store";
 import { ProductDetail, ProductVariant } from "@/features/shop/actions";
+import { toast } from "sonner";
 
 interface ProductDetailsClientProps {
   product: Pick<ProductDetail, "id" | "name" | "brand" | "images">;
@@ -24,6 +25,14 @@ export function ProductDetailsClient({ product, variants }: ProductDetailsClient
       image: product.images.find((img) => img.is_main)?.url || product.images[0]?.url || "",
       quantity: 1,
       size: selectedVariant.size
+    });
+
+    toast.success(`${product.name} added to your collection`, {
+      description: `Size: ${selectedVariant.size}ml — ${selectedVariant.price.toLocaleString("vi-VN")} VND`,
+      action: {
+        label: "View Bag",
+        onClick: () => window.location.href = "/cart"
+      }
     });
   };
 
