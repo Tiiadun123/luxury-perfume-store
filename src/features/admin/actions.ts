@@ -3,6 +3,26 @@
 import { supabaseAdmin } from "@/utils/supabase/admin";
 import { revalidatePath } from "next/cache";
 import { Product, CustomerProfile, ShippingZone, Banner, Brand, SiteSettings } from "@/types/admin";
+import { createClient } from "@/utils/supabase/server";
+
+async function verifyAdminRole(): Promise<{ authorized: boolean; error?: string }> {
+  const supabase = await createClient();
+  const { data: { user }, error } = await supabase.auth.getUser();
+  
+  if (error || !user) return { authorized: false, error: "Yêu cầu đăng nhập" };
+  
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+  
+  if (!profile || !["admin", "manager"].includes(profile.role)) {
+    return { authorized: false, error: "Không có quyền truy cập" };
+  }
+  
+  return { authorized: true };
+}
 
 export async function getAdminStats() {
   const supabase = supabaseAdmin;
@@ -173,6 +193,9 @@ export async function getAllAdminProducts() {
 }
 
 export async function deleteProduct(productId: string) {
+  const auth = await verifyAdminRole();
+  if (!auth.authorized) return { success: false, error: auth.error };
+
   const supabase = supabaseAdmin;
   
   const { error } = await supabase
@@ -226,6 +249,9 @@ export async function upsertBrand(data: Partial<Brand>) {
 }
 
 export async function deleteBrand(id: string) {
+  const auth = await verifyAdminRole();
+  if (!auth.authorized) return { success: false, error: auth.error };
+
   const supabase = supabaseAdmin;
   const { error } = await supabase
     .from("brands")
@@ -360,6 +386,9 @@ export async function upsertShippingZone(data: Partial<ShippingZone>) {
 }
 
 export async function deleteShippingZone(id: string) {
+  const auth = await verifyAdminRole();
+  if (!auth.authorized) return { success: false, error: auth.error };
+
   const supabase = supabaseAdmin;
   const { error } = await supabase
     .from("shipping_zones")
@@ -399,6 +428,9 @@ export async function upsertBanner(data: Partial<Banner>) {
 }
 
 export async function deleteBanner(id: string) {
+  const auth = await verifyAdminRole();
+  if (!auth.authorized) return { success: false, error: auth.error };
+
   const supabase = supabaseAdmin;
   const { error } = await supabase
     .from("banners")

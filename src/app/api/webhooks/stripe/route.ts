@@ -73,39 +73,7 @@ export async function POST(req: Request) {
              // Non-blocking error: we updated the order successfully.
           }
 
-          // 3. Stock Management: Decrement inventory for each item
-          const { data: itemsToUpdate } = await supabase
-            .from("order_items")
-            .select("variant_id, quantity")
-            .eq("order_id", orderId);
-
-          if (itemsToUpdate && itemsToUpdate.length > 0) {
-            for (const item of itemsToUpdate) {
-              const { error: stockError } = await supabase.rpc('decrement_stock_by_variant', {
-                p_variant_id: item.variant_id,
-                p_quantity: item.quantity
-              });
-
-              if (stockError) {
-                console.error(`Inventory Error for variant ${item.variant_id}:`, stockError);
-                // We fallback to a manual update if RPC is missing
-                const { data: currentVariant } = await supabase
-                  .from("product_variants")
-                  .select("stock_quantity")
-                  .eq("id", item.variant_id)
-                  .single();
-
-                if (currentVariant) {
-                  await supabase
-                    .from("product_variants")
-                    .update({ stock_quantity: Math.max(0, currentVariant.stock_quantity - item.quantity) })
-                    .eq("id", item.variant_id);
-                }
-              }
-            }
-          }
-
-          // 4. Fetch Order Details to Send Email
+          // 3. Fetch Order Details for Email and Inventory
           const { data: orderDetails } = await supabase
             .from("orders")
             .select(`
@@ -115,6 +83,7 @@ export async function POST(req: Request) {
               total_amount,
               recipient_name,
               items:order_items (
+                variant_id,
                 product_name,
                 variant_size,
                 quantity,
@@ -124,7 +93,19 @@ export async function POST(req: Request) {
             .eq("id", orderId)
             .single();
 
-          // 4. Send Confirmation Email via Resend
+          // 4. Stock Management: Explicitly decrement inventory
+          if (orderDetails?.items) {
+            for (const item of orderDetails.items) {
+              if (item.variant_id) {
+                await supabase.rpc("decrement_stock_by_variant", {
+                  p_variant_id: item.variant_id,
+                  p_quantity: item.quantity
+                });
+              }
+            }
+          }
+
+          // 5. Send Confirmation Email via Resend
           if (orderDetails) {
              const customerName = orderDetails.customer_name || orderDetails.recipient_name || "MEMBER";
              const customerEmail = orderDetails.customer_email || session.customer_details?.email;

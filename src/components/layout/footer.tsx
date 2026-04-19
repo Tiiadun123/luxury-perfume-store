@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { toast } from "sonner";
 
 export function Footer() {
   return (
@@ -21,7 +24,15 @@ export function Footer() {
              <p className="text-[10px] tracking-[0.2em] text-zinc-500 uppercase font-bold">
                 Subscribe to receive private invitations and olfactory revelations.
              </p>
-             <form className="flex max-w-md group border-b border-border/40 focus-within:border-primary transition-colors duration-500">
+             <form 
+               onSubmit={(e) => {
+                 e.preventDefault();
+                 toast.success("Welcome to The Maison Gazette", {
+                   description: "You'll receive our exclusive olfactory revelations."
+                 });
+               }}
+               className="flex max-w-md group border-b border-border/40 focus-within:border-primary transition-colors duration-500"
+             >
                <input 
                   type="email" 
                   placeholder="E-MAIL ADDRESS" 

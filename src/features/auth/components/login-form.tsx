@@ -1,19 +1,22 @@
 "use client";
 
-import { useTransition } from "react";
+import { useTransition, useState } from "react";
 import { login } from "../actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
+import { AlertCircle, CheckCircle2 } from "lucide-react";
 
-export function LoginForm() {
+export function LoginForm({ showResetSuccess }: { showResetSuccess?: boolean }) {
   const [isPending, startTransition] = useTransition();
+  const [loginError, setLoginError] = useState<string | null>(null);
 
   const handleSubmit = (formData: FormData) => {
+    setLoginError(null);
     startTransition(async () => {
       const result = await login(formData);
       if (result?.error) {
-        alert(result.error);
+        setLoginError(result.error);
       }
     });
   };
@@ -49,6 +52,24 @@ export function LoginForm() {
           />
         </div>
 
+        {loginError && (
+          <div className="flex items-start gap-3 p-4 border border-red-500/30 bg-red-500/5">
+            <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+            <p className="text-[10px] tracking-[0.15em] font-bold uppercase text-red-500">
+              {loginError}
+            </p>
+          </div>
+        )}
+
+        {showResetSuccess && !loginError && (
+          <div className="flex items-start gap-3 p-4 border border-green-500/30 bg-green-500/5">
+            <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
+            <p className="text-[10px] tracking-[0.15em] font-bold uppercase text-green-500">
+              Mật khẩu đã được đặt lại thành công. Vui lòng đăng nhập.
+            </p>
+          </div>
+        )}
+
         <Button
           type="submit"
           variant="luxury"
@@ -70,7 +91,7 @@ export function LoginForm() {
           </Link>
         </p>
         <Link
-          href="/forgot-password"
+          href="/auth/forgot-password"
           className="block text-[10px] tracking-widest text-muted-foreground/60 uppercase hover:text-primary transition-colors"
         >
           Forgot your password?

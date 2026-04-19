@@ -19,7 +19,7 @@ export function SignupForm() {
       if (result?.error) {
         setMessage({ type: "error", text: result.error });
       } else if (result?.success) {
-        setMessage({ type: "success", text: result.success });
+        setMessage({ type: "success", text: result.data as string });
       }
     });
   };

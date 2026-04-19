@@ -11,6 +11,7 @@ import { ShieldCheck, Truck, Gift, CheckCircle2 } from "lucide-react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
+import { toast } from "sonner";
 
 export default function CheckoutPage() {
   const { items, clearCart } = useCart();
@@ -64,11 +65,15 @@ export default function CheckoutPage() {
           }
         } else {
           // Display the specific error from the server (Stripe failure or DB failure)
-          alert(result.error || "An unexpected error occurred during reservation.");
+          toast.error(result.error || "An unexpected error occurred during reservation.", {
+            description: "Please verify your details and try again.",
+          });
         }
       } catch (err) {
         console.error("Submission error:", err);
-        alert("The reservation system is currently under maintenance. Please try again shortly.");
+        toast.error("The reservation system is currently under maintenance.", {
+          description: "Please try again shortly.",
+        });
       }
     });
   };

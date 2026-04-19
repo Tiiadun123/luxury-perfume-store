@@ -41,9 +41,6 @@ yarn-error.log*
 next-env.d.ts
 
 # agent and tool support
-.agent/
-.claude/
-.gemini/
 stripe.exe
 .pnpm-store/
 .npm/

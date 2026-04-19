@@ -1,6 +1,6 @@
 import { ShopSidebar } from "@/features/shop/components/shop-sidebar";
 import { ProductCard } from "@/features/shop/components/product-card";
-import { getProducts, getBrands, getCategories } from "@/features/shop/actions";
+import { getProducts, getBrands } from "@/features/shop/actions";
 import { ShopControls } from "@/features/shop/components/shop-controls";
 import { LoadMore } from "@/features/shop/components/load-more";
 import Image from "next/image";
@@ -40,7 +40,6 @@ export default async function ShopPage({
   });
 
   const brands = await getBrands();
-  const categories = await getCategories();
 
   return (
     <div className="flex flex-col min-h-screen animate-in fade-in duration-1000">

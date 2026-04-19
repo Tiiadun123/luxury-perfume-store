@@ -45,12 +45,16 @@ export default async function ProfileDashboard({ initialProfile }: { initialProf
                <p className="text-[10px] tracking-[0.4em] text-muted-foreground uppercase">{profile.email}</p>
             </div>
          </div>
-         <form action={signout}>
-            <Button variant="outline" className="h-14 px-8 text-[10px] tracking-widest font-bold uppercase border-border/40 hover:bg-destructive hover:text-destructive-foreground">
+          <form action={signout}>
+            <Button 
+              type="submit"
+              variant="outline" 
+              className="h-14 px-8 text-[10px] tracking-widest font-bold uppercase border-border/40 hover:bg-destructive hover:text-destructive-foreground"
+            >
                <LogOut className="w-4 h-4 mr-2" />
                Sign Out
             </Button>
-         </form>
+          </form>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-16">

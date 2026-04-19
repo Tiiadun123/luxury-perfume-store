@@ -4,24 +4,19 @@ import { useTransition } from "react";
 import { signout } from "../actions";
 import { Button } from "@/components/ui/button";
 import { LogOut, Loader2 } from "lucide-react";
-import { toast } from "sonner";
 
 export function SignOutButton() {
   const [isPending, startTransition] = useTransition();
 
   const handleSignOut = () => {
     startTransition(async () => {
-      try {
-        await signout();
-      } catch (error) {
-        console.error("Sign out error:", error);
-        toast.error("Failed to sign out. Please try refreshing.");
-      }
+      await signout();
     });
   };
 
   return (
     <Button 
+      type="button"
       variant="outline" 
       onClick={handleSignOut}
       disabled={isPending}
