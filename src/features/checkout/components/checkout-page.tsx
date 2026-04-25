@@ -117,7 +117,7 @@ export default function CheckoutPage() {
                     <Input name="fullName" placeholder="FULL NAME" required />
                     <Input name="email" type="email" placeholder="EMAIL ADDRESS" required />
                  </div>
-                 <Input name="phone" placeholder="PHONE NUMBER" required />
+                 <Input name="phone" type="tel" pattern="[0-9]{9,15}" placeholder="PHONE NUMBER (9-15 DIGITS)" required />
               </div>
 
               <div className="space-y-6">

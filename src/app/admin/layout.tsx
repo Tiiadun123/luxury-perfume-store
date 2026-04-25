@@ -30,9 +30,9 @@ export default async function AdminLayout({
   return (
     <div className="flex h-screen bg-background">
       <AdminSidebar />
-      <div className="flex-1 flex flex-col ml-64 overflow-hidden">
+      <div className="flex-1 flex flex-col lg:ml-64 overflow-hidden w-full max-w-[100vw]">
         <AdminHeader />
-        <main className="flex-1 overflow-y-auto p-12 custom-scrollbar">
+        <main className="flex-1 overflow-y-auto p-4 lg:p-12 custom-scrollbar">
           {children}
         </main>
       </div>

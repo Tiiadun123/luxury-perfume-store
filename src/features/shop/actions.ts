@@ -335,3 +335,20 @@ export async function getCategories() {
   }
   return data;
 }
+
+export async function getScentFamilies() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("products")
+    .select("scent_family")
+    .eq("is_active", true)
+    .not("scent_family", "is", null);
+
+  if (error) {
+    console.error("Error fetching scent families:", error);
+    return [];
+  }
+
+  const uniqueFamilies = Array.from(new Set(data.map(item => item.scent_family))).filter(Boolean) as string[];
+  return uniqueFamilies;
+}

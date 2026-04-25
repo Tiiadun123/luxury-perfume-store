@@ -8,9 +8,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Fetch all products for dynamic routes
   const { data: products } = await supabase.from('products').select('slug, updated_at').eq('is_active', true);
 
+  // Fetch all brands for dynamic routes
+  const { data: brands } = await supabase.from('brands').select('slug, updated_at').eq('is_active', true);
+
   const productRoutes = (products || []).map((product) => ({
     url: `${baseUrl}/product/${product.slug}`,
-    lastModified: new Date(product.updated_at),
+    lastModified: new Date(product.updated_at || new Date()),
+    changeFrequency: 'weekly' as const,
+    priority: 0.8,
+  }));
+
+  const brandRoutes = (brands || []).map((brand) => ({
+    url: `${baseUrl}/brands/${brand.slug}`,
+    lastModified: new Date(brand.updated_at || new Date()),
     changeFrequency: 'weekly' as const,
     priority: 0.8,
   }));
@@ -36,5 +46,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ];
 
-  return [...staticRoutes, ...productRoutes];
+  return [...staticRoutes, ...productRoutes, ...brandRoutes];
 }

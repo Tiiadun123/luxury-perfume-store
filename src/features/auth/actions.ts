@@ -4,6 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { z } from "zod";
 
 const RECOVERY_COOKIE_NAME = "password_recovery_verified";
 const RECOVERY_COOKIE_MAX_AGE = 60 * 10;
@@ -43,8 +44,21 @@ export async function hasVerifiedRecoverySession() {
 export async function login(formData: FormData) {
   const supabase = await createClient();
 
-  const email = formData.get("email") as string;
-  const password = formData.get("password") as string;
+  const schema = z.object({
+    email: z.string().email("Email không hợp lệ"),
+    password: z.string().min(6, "Mật khẩu phải có ít nhất 6 ký tự"),
+  });
+
+  const parsed = schema.safeParse({
+    email: formData.get("email") || "",
+    password: formData.get("password") || "",
+  });
+
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.errors[0].message };
+  }
+
+  const { email, password } = parsed.data;
 
   const { error } = await supabase.auth.signInWithPassword({
     email,
@@ -62,14 +76,28 @@ export async function login(formData: FormData) {
 export async function signup(formData: FormData) {
   const supabase = await createClient();
 
-  const email = formData.get("email") as string;
-  const password = formData.get("password") as string;
-  const confirmPassword = formData.get("confirmPassword") as string;
-  const fullName = formData.get("fullName") as string;
+  const schema = z.object({
+    email: z.string().email("Email không hợp lệ"),
+    password: z.string().min(6, "Mật khẩu phải có ít nhất 6 ký tự"),
+    confirmPassword: z.string(),
+    fullName: z.string().min(2, "Tên phải có ít nhất 2 ký tự"),
+  }).refine(data => data.password === data.confirmPassword, {
+    message: "Mật khẩu xác nhận không khớp!",
+    path: ["confirmPassword"]
+  });
 
-  if (password !== confirmPassword) {
-    return { success: false, error: "Mật khẩu xác nhận không khớp!" };
+  const parsed = schema.safeParse({
+    email: formData.get("email") || "",
+    password: formData.get("password") || "",
+    confirmPassword: formData.get("confirmPassword") || "",
+    fullName: formData.get("fullName") || "",
+  });
+
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.errors[0].message };
   }
+
+  const { email, password, fullName } = parsed.data;
 
   const { error } = await supabase.auth.signUp({
     email,
@@ -188,38 +216,4 @@ export async function resetPassword(newPassword: string) {
   return { success: true, data: "Đặt lại mật khẩu thành công" };
 }
 
-export async function getProfile() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
 
-  if (!user) return null;
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .single();
-
-  return profile;
-}
-
-export async function updateProfile(data: {
-  full_name?: string;
-  phone?: string;
-  address?: string;
-}) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) return { success: false, error: "Authentication required" };
-
-  const { error } = await supabase
-    .from("profiles")
-    .update(data)
-    .eq("id", user.id);
-
-  if (error) return { success: false, error: error.message };
-
-  revalidatePath("/profile");
-  return { success: true };
-}

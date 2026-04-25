@@ -12,8 +12,12 @@ interface ProductDetailsClientProps {
 }
 
 export function ProductDetailsClient({ product, variants }: ProductDetailsClientProps) {
-  const [selectedVariant, setSelectedVariant] = useState(variants[0]);
+  const [selectedVariant, setSelectedVariant] = useState(variants?.[0]);
   const { addItem } = useCart();
+
+  if (!variants || variants.length === 0 || !selectedVariant) {
+    return <div className="text-muted-foreground tracking-widest uppercase text-sm py-10">This essence is currently unavailable.</div>;
+  }
 
   const handleAddToCart = () => {
     addItem({

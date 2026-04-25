@@ -25,6 +25,8 @@ async function verifyAdminRole(): Promise<{ authorized: boolean; error?: string 
 }
 
 export async function getAdminStats() {
+  const auth = await verifyAdminRole();
+  if (!auth.authorized) throw new Error(auth.error);
   const supabase = supabaseAdmin;
 
   // 1. Fetch Total Orders
@@ -112,6 +114,8 @@ export async function getAdminStats() {
 }
 
 export async function getAllOrders() {
+  const auth = await verifyAdminRole();
+  if (!auth.authorized) return [];
   const supabase = supabaseAdmin;
   const { data: orders } = await supabase
     .from("orders")
@@ -130,6 +134,8 @@ import { resend } from "@/lib/resend";
 import { getOrderShippedHtml } from "@/lib/emails/order-shipped-email";
 
 export async function updateOrderStatus(orderId: string, status: string) {
+  const auth = await verifyAdminRole();
+  if (!auth.authorized) return { success: false, error: auth.error };
   const supabase = supabaseAdmin;
   
   // 1. Update the status
@@ -178,6 +184,8 @@ export async function updateOrderStatus(orderId: string, status: string) {
 }
 
 export async function getAllAdminProducts() {
+  const auth = await verifyAdminRole();
+  if (!auth.authorized) return [];
   const supabase = supabaseAdmin;
   const { data: products } = await supabase
     .from("products")
@@ -208,6 +216,8 @@ export async function deleteProduct(productId: string) {
 }
 
 export async function toggleProductStatus(productId: string, isActive: boolean) {
+  const auth = await verifyAdminRole();
+  if (!auth.authorized) return { success: false, error: auth.error };
   const supabase = supabaseAdmin;
   const { error } = await supabase
     .from("products")
@@ -219,6 +229,8 @@ export async function toggleProductStatus(productId: string, isActive: boolean) 
 }
 
 export async function getBrands() {
+  const auth = await verifyAdminRole();
+  if (!auth.authorized) return [];
   const supabase = supabaseAdmin;
   const { data: brands } = await supabase
     .from("brands")
@@ -229,6 +241,8 @@ export async function getBrands() {
 }
 
 export async function upsertBrand(data: Partial<Brand>) {
+  const auth = await verifyAdminRole();
+  if (!auth.authorized) return { success: false, error: auth.error };
   const supabase = supabaseAdmin;
   const { id, name, ...rest } = data;
   
@@ -263,6 +277,8 @@ export async function deleteBrand(id: string) {
 }
 
 export async function upsertProduct(data: Omit<Partial<Product>, 'brand'> & { brand?: { id: string } }) {
+  const auth = await verifyAdminRole();
+  if (!auth.authorized) return { success: false, error: auth.error };
   const supabase = supabaseAdmin;
   const { id, variants, images, brand, ...productData } = data;
 
@@ -326,6 +342,8 @@ export async function upsertProduct(data: Omit<Partial<Product>, 'brand'> & { br
 }
 
 export async function getAdminCustomers(search?: string) {
+  const auth = await verifyAdminRole();
+  if (!auth.authorized) return [];
   const supabase = supabaseAdmin;
   
   let query = supabase
@@ -363,6 +381,8 @@ export async function getAdminCustomers(search?: string) {
 // --- Logistics & Shipping ---
 
 export async function getShippingZones() {
+  const auth = await verifyAdminRole();
+  if (!auth.authorized) return [];
   const supabase = supabaseAdmin;
   const { data: zones } = await supabase
     .from("shipping_zones")
@@ -372,6 +392,8 @@ export async function getShippingZones() {
 }
 
 export async function upsertShippingZone(data: Partial<ShippingZone>) {
+  const auth = await verifyAdminRole();
+  if (!auth.authorized) return { success: false, error: auth.error };
   const supabase = supabaseAdmin;
   const { id, ...rest } = data;
   const { error } = await supabase
@@ -402,6 +424,8 @@ export async function deleteShippingZone(id: string) {
 // --- CMS & Banners ---
 
 export async function getBanners() {
+  const auth = await verifyAdminRole();
+  if (!auth.authorized) return [];
   const supabase = supabaseAdmin;
   const { data: banners } = await supabase
     .from("banners")
@@ -411,6 +435,8 @@ export async function getBanners() {
 }
 
 export async function upsertBanner(data: Partial<Banner>) {
+  const auth = await verifyAdminRole();
+  if (!auth.authorized) return { success: false, error: auth.error };
   const supabase = supabaseAdmin;
   const { id, ...rest } = data;
   const { error } = await supabase
@@ -446,6 +472,8 @@ export async function deleteBanner(id: string) {
 // --- Site Settings ---
 
 export async function getSiteSettings() {
+  const auth = await verifyAdminRole();
+  if (!auth.authorized) return null;
   const supabase = supabaseAdmin;
   const { data, error } = await supabase
     .from("site_settings")
@@ -461,6 +489,8 @@ export async function getSiteSettings() {
 }
 
 export async function updateSiteSettings(data: Partial<SiteSettings>) {
+  const auth = await verifyAdminRole();
+  if (!auth.authorized) return { success: false, error: auth.error };
   const supabase = supabaseAdmin;
   const { error } = await supabase
     .from("site_settings")

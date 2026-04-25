@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/utils/supabase/server";
+import { revalidatePath } from "next/cache";
 
 export async function getUserProfile() {
   const supabase = await createClient();
@@ -47,4 +48,25 @@ export async function getUserOrders() {
   }
 
   return orders;
+}
+
+export async function updateProfile(data: {
+  full_name?: string;
+  phone?: string;
+  address?: string;
+}) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) return { success: false, error: "Authentication required" };
+
+  const { error } = await supabase
+    .from("profiles")
+    .update(data)
+    .eq("id", user.id);
+
+  if (error) return { success: false, error: error.message };
+
+  revalidatePath("/profile");
+  return { success: true };
 }

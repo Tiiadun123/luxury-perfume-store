@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { upsertProduct, getBrands } from "../actions";
 import { Product, Brand } from "@/types/admin";
+import { toast } from "sonner";
 
 const productSchema = z.object({
   id: z.string().optional(),
@@ -97,7 +98,7 @@ export function ProductModal({
     if (result.success) {
       onClose();
     } else {
-      alert("Error: " + result.error);
+      toast.error(result.error || "Failed to save product.");
     }
   };
 

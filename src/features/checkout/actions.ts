@@ -3,6 +3,7 @@
 import { stripe } from "@/lib/stripe";
 import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 
 interface CartItem {
   id: string;
@@ -122,6 +123,34 @@ export async function createOrder(data: {
     return { success: false, error: "Vui lòng đăng nhập để tiến hành thanh toán." };
   }
 
+  const createOrderSchema = z.object({
+    fullName: z.string().min(2, "Họ và tên phải có ít nhất 2 ký tự"),
+    phone: z.string().regex(/^[0-9]{9,15}$/, "Số điện thoại không hợp lệ. Vui lòng nhập từ 9-15 chữ số."),
+    email: z.string().email("Email không hợp lệ"),
+    shippingAddress: z.string().min(5, "Địa chỉ nhận hàng quá ngắn"),
+    orderNotes: z.string().nullish(),
+    isGiftWrapped: z.boolean(),
+    giftMessage: z.string().nullish(),
+    shippingZoneId: z.string().nullish(),
+  });
+
+  const parsed = createOrderSchema.safeParse({
+    fullName: data.fullName || "",
+    phone: (data.phone || "").replace(/[\s\-\(\)]/g, ''),
+    email: data.email || "",
+    shippingAddress: data.shippingAddress || "",
+    orderNotes: data.orderNotes,
+    isGiftWrapped: data.isGiftWrapped,
+    giftMessage: data.giftMessage,
+    shippingZoneId: data.shippingZoneId,
+  });
+
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.errors[0].message };
+  }
+
+  const validatedData = parsed.data;
+
   // Verify prices from database
   const variantIds = data.items.map(i => i.variantId);
   const { data: variants, error: variantsError } = await supabase
@@ -143,15 +172,15 @@ export async function createOrder(data: {
     verifiedSubtotal += variant.price * item.quantity;
   }
 
-  const verifiedGiftCost = data.isGiftWrapped ? 150000 : 0;
+  const verifiedGiftCost = validatedData.isGiftWrapped ? 150000 : 0;
   
   // Verify shipping cost from DB (do not trust client)
   let verifiedShippingCost = 0;
-  if (data.shippingZoneId) {
+  if (validatedData.shippingZoneId) {
     const { data: zone } = await supabase
       .from("shipping_zones")
       .select("base_rate, free_shipping_threshold")
-      .eq("id", data.shippingZoneId)
+      .eq("id", validatedData.shippingZoneId)
       .eq("is_active", true)
       .single();
     
@@ -178,17 +207,17 @@ export async function createOrder(data: {
     .insert({
       order_number: orderNumber,
       profile_id: user.id,
-      shipping_address: data.shippingAddress,
-      recipient_name: data.fullName,
-      customer_name: data.fullName,
-      customer_email: data.email,
-      recipient_phone: data.phone,
+      shipping_address: validatedData.shippingAddress,
+      recipient_name: validatedData.fullName,
+      customer_name: validatedData.fullName,
+      customer_email: validatedData.email,
+      recipient_phone: validatedData.phone,
       total_amount: verifiedTotalAmount,
       shipping_cost: verifiedShippingCost,
       subtotal: verifiedSubtotal,
-      is_gift: data.isGiftWrapped,
-      gift_message: data.giftMessage,
-      notes: data.orderNotes,
+      is_gift: validatedData.isGiftWrapped,
+      gift_message: validatedData.giftMessage,
+      notes: validatedData.orderNotes,
       status: "pending",
       payment_status: "unpaid",
       payment_method: "stripe"
@@ -245,7 +274,8 @@ export async function createOrder(data: {
   
   if (stripeResult.error) {
     console.error("Stripe Session Creation Failed:", stripeResult.error);
-    // CRITICAL FIX: Return success: false if Stripe fails so client doesn't show success screen
+    // CRITICAL FIX: Rollback DB order on Stripe failure to prevent orphan orders
+    await supabase.from("orders").delete().eq("id", order.id);
     return { 
       success: false, 
       error: `Payment Initialisation Failed: ${stripeResult.error}. Please retry checkout.` 
@@ -261,4 +291,14 @@ export async function createOrder(data: {
     orderNumber: order.order_number, 
     checkoutUrl: stripeResult.url 
   };
+}
+
+export async function verifyStripeSession(sessionId: string) {
+  try {
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    return { success: true, paymentStatus: session.payment_status };
+  } catch (error) {
+    console.error("Failed to verify Stripe session:", error);
+    return { success: false, error: "Invalid session" };
+  }
 }

@@ -24,10 +24,12 @@ export async function POST(req: Request) {
   }
 
   // Initialize Supabase. For webhooks background processing, 
-  // if SERVICE_ROLE is available, use it; otherwise fallback to ANON_KEY.
+  // service role key is strictly required to bypass RLS.
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-  const supabase = createClient(supabaseUrl, supabaseKey);
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error("CRITICAL: SUPABASE_SERVICE_ROLE_KEY is not set. Webhook cannot process.");
+  }
+  const supabase = createClient(supabaseUrl, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
   try {
     switch (event.type) {
@@ -97,10 +99,13 @@ export async function POST(req: Request) {
           if (orderDetails?.items) {
             for (const item of orderDetails.items) {
               if (item.variant_id) {
-                await supabase.rpc("decrement_stock_by_variant", {
+                const { error: rpcError } = await supabase.rpc("decrement_stock_by_variant", {
                   p_variant_id: item.variant_id,
                   p_quantity: item.quantity
                 });
+                if (rpcError) {
+                  console.error("Stock decrement failed for variant:", item.variant_id, rpcError);
+                }
               }
             }
           }
@@ -124,10 +129,11 @@ export async function POST(req: Request) {
 
               if (resend) {
                 try {
-                  const adminEmail = "hungtran2005lucky@gmail.com"; 
+                  const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL || "admin@maison-scentia.com"; 
+                  const fromEmail = process.env.RESEND_FROM_EMAIL || "noreply@maison-scentia.com";
                   
                   await resend.emails.send({
-                    from: "Maison Scêntia <hungtran2003lucky@gmail.com>",
+                    from: `Maison Scêntia <${fromEmail}>`,
                     to: [customerEmail], // Use the validated email with fallback
                     bcc: [adminEmail], 
                     subject: `Maison Scêntia - Xác Nhận Đơn Hàng #${orderDetails.order_number}`,
@@ -141,7 +147,7 @@ export async function POST(req: Request) {
                   console.error("🔍 DEBUG INFO:", {
                     recipient: orderDetails.customer_email,
                     apiKeyStatus: process.env.RESEND_API_KEY ? "Present" : "Missing",
-                    fromAddress: "hungtran2003lucky@gmail.com"
+                    fromAddress: process.env.RESEND_FROM_EMAIL || "noreply@maison-scentia.com"
                   });
                 }
               } else {

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { updateProfile } from "@/features/auth/actions";
+import { updateProfile } from "@/features/profile/actions";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { User, Phone, MapPin, ArrowLeft } from "lucide-react";

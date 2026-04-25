@@ -14,7 +14,7 @@ const CATEGORIES = [
   { label: "UNISEX", value: "Unisex" },
 ];
 
-const NOTES = ["Floral", "Woody", "Oriental", "Fresh", "Leather", "Spiced", "Citrus", "Amber Floral"];
+
 
 const CONCENTRATIONS = [
   { label: "PARFUM", value: "Parfum" },
@@ -24,9 +24,10 @@ const CONCENTRATIONS = [
 
 interface ShopSidebarProps {
   brands?: { name: string; slug: string }[];
+  scentFamilies?: string[];
 }
 
-export function ShopSidebar({ brands = [] }: ShopSidebarProps) {
+export function ShopSidebar({ brands = [], scentFamilies = [] }: ShopSidebarProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [brandSearch, setBrandSearch] = useState("");
@@ -112,7 +113,7 @@ export function ShopSidebar({ brands = [] }: ShopSidebarProps) {
           OLFACTORY NOTES
         </h4>
         <div className="flex flex-wrap gap-2">
-          {NOTES.map((note) => (
+          {scentFamilies.map((note) => (
             <button
               key={note}
               onClick={() => router.push(`/shop?${createQueryString("family", activeFamily === note ? null : note)}`)}

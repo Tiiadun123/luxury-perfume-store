@@ -10,7 +10,7 @@ import { LuxuryMist } from "@/components/ui/luxury-mist";
 import { HeroFloatingTokens } from "@/components/ui/hero-floating-tokens";
 
 export default async function HomePage() {
-  const featuredProducts = await getProducts();
+  const featuredProducts = await getProducts({ is_featured: true, limit: 4 });
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -58,13 +58,13 @@ export default async function HomePage() {
                         <div className="absolute inset-x-0 bottom-0 h-0 bg-black group-hover:h-full transition-all duration-700 opacity-10" />
                      </div>
                    </Link>
-                   <button className="flex items-center gap-6 text-[10px] tracking-[0.5em] font-black uppercase text-white hover:text-primary transition-all group">
+                   <Link href="/essence" className="flex items-center gap-6 text-[10px] tracking-[0.5em] font-black uppercase text-white hover:text-primary transition-all group">
                       <div className="w-14 h-14 rounded-full border border-white/10 flex items-center justify-center backdrop-blur-xl group-hover:border-primary/40 group-hover:scale-110 transition-all duration-700 overflow-hidden relative">
                          <Play className="w-4 h-4 fill-current ml-1 relative z-10" />
                          <div className="absolute inset-0 bg-primary/20 scale-0 group-hover:scale-100 transition-transform duration-700 rounded-full" />
                       </div>
                       <span className="border-b border-white/20 pb-1 group-hover:border-primary transition-colors">The Experience</span>
-                   </button>
+                   </Link>
                 </div>
               </div>
            </div>
@@ -92,7 +92,7 @@ export default async function HomePage() {
            </SectionReveal>
 
            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
-              {featuredProducts.slice(0, 4).map((p, i) => (
+              {featuredProducts.map((p, i) => (
                 <SectionReveal key={p.id} delay={i * 0.1}>
                   <ProductCard {...p} />
                 </SectionReveal>

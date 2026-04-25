@@ -1,6 +1,6 @@
 import { ShopSidebar } from "@/features/shop/components/shop-sidebar";
 import { ProductCard } from "@/features/shop/components/product-card";
-import { getProducts, getBrands } from "@/features/shop/actions";
+import { getProducts, getBrands, getScentFamilies } from "@/features/shop/actions";
 import { ShopControls } from "@/features/shop/components/shop-controls";
 import { LoadMore } from "@/features/shop/components/load-more";
 import Image from "next/image";
@@ -40,6 +40,7 @@ export default async function ShopPage({
   });
 
   const brands = await getBrands();
+  const scentFamilies = await getScentFamilies();
 
   return (
     <div className="flex flex-col min-h-screen animate-in fade-in duration-1000">
@@ -65,7 +66,7 @@ export default async function ShopPage({
       <div className="container mx-auto px-6 md:px-12 py-20 flex flex-col lg:flex-row gap-16">
         <Suspense fallback={<div className="w-72 h-screen bg-zinc-100/10 animate-pulse" />}>
           {/* Sidebar Filters */}
-          <ShopSidebar brands={brands} />
+          <ShopSidebar brands={brands} scentFamilies={scentFamilies} />
         </Suspense>
 
         {/* Main Content */}

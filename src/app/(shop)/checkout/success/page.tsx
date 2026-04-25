@@ -7,6 +7,7 @@ import { CheckCircle2, ShoppingBag, ArrowRight, Snowflake } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useCart } from "@/features/cart/store";
+import { verifyStripeSession } from "@/features/checkout/actions";
 
 function SuccessContent() {
   const searchParams = useSearchParams();
@@ -19,7 +20,11 @@ function SuccessContent() {
     
     // Clear cart on successful payment session
     if (sessionId) {
-      clearCart();
+      verifyStripeSession(sessionId).then((result) => {
+        if (result.success && result.paymentStatus === "paid") {
+          clearCart();
+        }
+      });
     }
 
     return () => cancelAnimationFrame(id);
